@@ -1,0 +1,153 @@
+// Prisma schema for IGZ AI Use Case Management (SQLite for MVP, swappable to Azure SQL later)
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Role, UseCaseStatus, BusinessValue, Feasibility, Risk, StrategicRelevance are stored as
+// validated strings (see src/domain/enums.ts) because SQLite has no native enum type.
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String
+  department   String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  createdUseCases     UseCase[]       @relation("CreatedBy")
+  modifiedUseCases    UseCase[]       @relation("LastModifiedBy")
+  statusChanges       StatusHistory[]
+  comments            Comment[]
+  evaluations         Evaluation[]
+  uploadedAttachments Attachment[]
+
+  @@map("users")
+}
+
+model UseCase {
+  id    String @id @default(cuid())
+  title String
+
+  requestor  String
+  department String
+  aiChampion String?
+
+  problemDescription String
+  currentProcess     String?
+  painPoints         String?
+  frequency          String?
+
+  solutionIdea   String
+  dataSources    String?
+  expectedOutput String?
+
+  targetGroup    String?
+  reach          String?
+  estimatedUsers Int?
+  usageFrequency String?
+
+  benefits             String?
+  benefitTypes         String?
+  estimatedEffect      String?
+  estimatedTimeSavings String?
+  businessValueNote    String?
+  aiSolutionType       String?
+  aiSolutionOtherText  String?
+  implementationEffort String?
+  dependencies         String?
+
+  dataClassifications String?
+  riskAssessment      String?
+  securityNotes       String?
+
+  responsible String?
+  targetDate  String?
+
+  status String @default("DRAFT")
+
+  createdById      String
+  createdBy        User   @relation("CreatedBy", fields: [createdById], references: [id])
+  lastModifiedById String
+  lastModifiedBy   User   @relation("LastModifiedBy", fields: [lastModifiedById], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  statusHistory StatusHistory[]
+  comments      Comment[]
+  evaluations   Evaluation[]
+  attachments   Attachment[]
+
+  @@index([status])
+  @@index([department])
+  @@map("use_cases")
+}
+
+model StatusHistory {
+  id          String   @id @default(cuid())
+  useCaseId   String
+  useCase     UseCase  @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  fromStatus  String?
+  toStatus    String
+  changedById String
+  changedBy   User     @relation(fields: [changedById], references: [id])
+  note        String?
+  changedAt   DateTime @default(now())
+
+  @@index([useCaseId])
+  @@map("status_history")
+}
+
+model Comment {
+  id        String   @id @default(cuid())
+  useCaseId String
+  useCase   UseCase  @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  authorId  String
+  author    User     @relation(fields: [authorId], references: [id])
+  text      String
+  createdAt DateTime @default(now())
+
+  @@index([useCaseId])
+  @@map("comments")
+}
+
+model Evaluation {
+  id                 String   @id @default(cuid())
+  useCaseId          String
+  useCase            UseCase  @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  evaluatorId        String
+  evaluator          User     @relation(fields: [evaluatorId], references: [id])
+  businessValue      String
+  feasibility        String
+  risk               String
+  strategicRelevance String
+  note               String?
+  createdAt          DateTime @default(now())
+
+  @@index([useCaseId])
+  @@map("evaluations")
+}
+
+model Attachment {
+  id           String   @id @default(cuid())
+  useCaseId    String
+  useCase      UseCase  @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  fileName     String
+  storedPath   String
+  mimeType     String
+  size         Int
+  uploadedById String
+  uploadedBy   User     @relation(fields: [uploadedById], references: [id])
+  uploadedAt   DateTime @default(now())
+
+  @@index([useCaseId])
+  @@map("attachments")
+}
