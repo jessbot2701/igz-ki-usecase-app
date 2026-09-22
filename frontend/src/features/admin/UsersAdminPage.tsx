@@ -3,12 +3,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   Dialog,
   DialogActions,
   DialogContent,
   DialogTitle,
   MenuItem,
+  Paper,
   Stack,
   Switch,
   TextField,
@@ -19,6 +22,7 @@ import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { CreateUserInput, userApi } from '../../api/userApi';
 import { ROLE_LABELS, Role, User } from '../../types';
 import { useNotification } from '../../context/NotificationContext';
+import { dataGridSx } from '../../theme/theme';
 
 function CreateUserDialog({
   open,
@@ -148,21 +152,83 @@ export function UsersAdminPage() {
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
-        <Typography variant="h4">Benutzerverwaltung</Typography>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'flex-end' }}
+        spacing={2}
+        sx={{ mb: 3 }}
+      >
+        <Box>
+          <Typography
+            variant="overline"
+            sx={{ color: 'primary.light', fontWeight: 800, letterSpacing: '0.12em' }}
+          >
+            Administration
+          </Typography>
+          <Typography variant="h4">Benutzerverwaltung</Typography>
+          <Typography variant="body2" color="text.secondary" sx={{ mt: 0.75 }}>
+            Rollen, Bereiche und Zugänge verwalten.
+          </Typography>
+        </Box>
         <Button variant="contained" startIcon={<AddIcon />} onClick={() => setCreateOpen(true)}>
           Neuer Benutzer
         </Button>
       </Stack>
-      <Box sx={{ height: 520, bgcolor: 'background.paper', borderRadius: 2 }}>
+      <Paper
+        elevation={0}
+        sx={{
+          height: 560,
+          overflow: 'hidden',
+          borderRadius: 2,
+          display: { xs: 'none', md: 'block' }
+        }}
+      >
         <DataGrid
           rows={data ?? []}
           columns={columns}
           loading={isLoading}
+          rowHeight={64}
           disableRowSelectionOnClick
-          sx={{ border: 'none' }}
+          sx={{ ...dataGridSx, cursor: 'default' }}
         />
-      </Box>
+      </Paper>
+      <Stack spacing={1.25} sx={{ display: { xs: 'flex', md: 'none' } }}>
+        {data?.map((person) => (
+          <Card key={person.id}>
+            <CardContent sx={{ p: 2, '&:last-child': { pb: 2 } }}>
+              <Stack
+                direction="row"
+                justifyContent="space-between"
+                alignItems="flex-start"
+                spacing={1.5}
+              >
+                <Box sx={{ minWidth: 0 }}>
+                  <Typography variant="subtitle2" sx={{ fontWeight: 700 }} noWrap>
+                    {person.name}
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" noWrap>
+                    {person.email}
+                  </Typography>
+                </Box>
+                <Switch
+                  size="small"
+                  checked={person.active}
+                  onChange={(event) =>
+                    toggleActiveMutation.mutate({ id: person.id, active: event.target.checked })
+                  }
+                />
+              </Stack>
+              <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap" sx={{ mt: 1.5 }}>
+                <Chip label={ROLE_LABELS[person.role]} size="small" />
+                {person.department && (
+                  <Chip label={person.department} size="small" variant="outlined" />
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
+        ))}
+      </Stack>
       <CreateUserDialog
         open={createOpen}
         onClose={() => setCreateOpen(false)}

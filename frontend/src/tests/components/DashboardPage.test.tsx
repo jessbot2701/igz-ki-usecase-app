@@ -30,14 +30,23 @@ vi.mock('../../api/useCaseApi', () => ({
       }),
     portfolio: () =>
       Promise.resolve({
-        byDepartment: { IT: 2 },
-        byEffort: { NIEDRIG: 1, MITTEL: 1 },
         byRisk: { NIEDRIG: 2 },
         byStrategicRelevance: { QUICK_WIN: 1 },
-        byAiSolutionType: { M365_COPILOT: 1 },
-        totalEstimatedUsers: 50,
         openDecisions: 1,
-        avgDecisionDays: 3
+        needMoreInfo: 1,
+        missingEvaluations: 1,
+        overdueTargetDates: 1,
+        attentionItems: [
+          {
+            id: 'case-1',
+            title: 'Offener Use Case',
+            department: 'IT',
+            responsible: 'AI Core Team',
+            targetDate: '2026-09-01',
+            status: 'NEED_MORE_INFO',
+            reasons: ['NEED_MORE_INFO']
+          }
+        ]
       })
   }
 }));
@@ -57,18 +66,19 @@ describe('DashboardPage', () => {
   it('does not show the portfolio overview for an Employee', () => {
     mockUser.mockReturnValue({ role: Role.EMPLOYEE });
     renderDashboard();
-    expect(screen.queryByText('Portfolio-Überblick')).not.toBeInTheDocument();
+    expect(screen.queryByText('Entscheidungszentrale')).not.toBeInTheDocument();
   });
 
   it('shows the portfolio overview for the AI Core Team', async () => {
     mockUser.mockReturnValue({ role: Role.AI_CORE_TEAM });
     renderDashboard();
-    expect(await screen.findByText('Portfolio-Überblick')).toBeInTheDocument();
+    expect(await screen.findByText('Entscheidungszentrale')).toBeInTheDocument();
+    expect(await screen.findByText('Offener Use Case')).toBeInTheDocument();
   });
 
   it('shows the portfolio overview for an Administrator', async () => {
     mockUser.mockReturnValue({ role: Role.ADMINISTRATOR });
     renderDashboard();
-    expect(await screen.findByText('Portfolio-Überblick')).toBeInTheDocument();
+    expect(await screen.findByText('Entscheidungszentrale')).toBeInTheDocument();
   });
 });

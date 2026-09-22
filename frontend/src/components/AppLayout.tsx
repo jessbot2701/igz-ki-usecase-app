@@ -23,7 +23,6 @@ import DashboardIcon from '@mui/icons-material/DashboardOutlined';
 import ListAltIcon from '@mui/icons-material/ListAltOutlined';
 import PeopleIcon from '@mui/icons-material/PeopleAltOutlined';
 import TimelineIcon from '@mui/icons-material/TimelineOutlined';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import SearchIcon from '@mui/icons-material/SearchOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
@@ -31,6 +30,7 @@ import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeModeContext';
 import { Role, ROLE_LABELS } from '../types';
 import { roleColors } from '../theme/theme';
+import igzLogo from '../assets/igz-logo.jpg';
 
 const DRAWER_WIDTH = 248;
 
@@ -56,6 +56,10 @@ export function AppLayout() {
   const location = useLocation();
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const availableAdminItems = ADMIN_NAV_ITEMS.filter(
+    (item) => user && item.roles.includes(user.role)
+  );
+  const mobileNavItems = [...NAV_ITEMS, ...availableAdminItems];
 
   const runGlobalSearch = () => {
     if (!searchTerm.trim()) return;
@@ -64,11 +68,22 @@ export function AppLayout() {
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
-      <AppBar position="fixed" sx={{ zIndex: (t) => t.zIndex.drawer + 1 }}>
-        <Toolbar sx={{ gap: 1.5 }}>
-          <AutoAwesomeIcon />
-          <Typography variant="h6" noWrap sx={{ mr: 2 }}>
-            IGZ AI Use Case Portal
+      <AppBar
+        position="fixed"
+        sx={{
+          ml: { md: `${DRAWER_WIDTH}px` },
+          width: { xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)` }
+        }}
+      >
+        <Toolbar sx={{ gap: 1.5, minHeight: { xs: 64, md: 72 } }}>
+          <Box
+            component="img"
+            src={igzLogo}
+            alt="IGZ – Die SAP Ingenieure"
+            sx={{ display: { xs: 'block', md: 'none' }, width: 132, height: 'auto' }}
+          />
+          <Typography variant="h6" noWrap sx={{ mr: 2, display: { xs: 'none', lg: 'block' } }}>
+            AI Use Case Portal
           </Typography>
           <TextField
             size="small"
@@ -81,25 +96,22 @@ export function AppLayout() {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <SearchIcon fontSize="small" sx={{ color: 'rgba(255,255,255,0.8)' }} />
+                  <SearchIcon fontSize="small" color="action" />
                 </InputAdornment>
               )
             }}
             sx={{
               flexGrow: 1,
-              maxWidth: 360,
+              maxWidth: 380,
+              display: { xs: 'none', sm: 'flex' },
               '& .MuiOutlinedInput-root': {
-                bgcolor: 'rgba(255,255,255,0.12)',
-                color: '#fff',
-                '& fieldset': { borderColor: 'rgba(255,255,255,0.3)' },
-                '&:hover fieldset': { borderColor: 'rgba(255,255,255,0.5)' }
-              },
-              '& .MuiInputBase-input::placeholder': { color: 'rgba(255,255,255,0.7)', opacity: 1 }
+                bgcolor: 'background.default'
+              }
             }}
           />
           <Box sx={{ flexGrow: 1 }} />
           <Tooltip title={mode === 'light' ? 'Dark Mode aktivieren' : 'Light Mode aktivieren'}>
-            <IconButton onClick={toggleMode} size="small" sx={{ color: '#fff' }}>
+            <IconButton onClick={toggleMode} size="small" color="inherit">
               {mode === 'light' ? <DarkModeIcon /> : <LightModeIcon />}
             </IconButton>
           </Tooltip>
@@ -116,7 +128,13 @@ export function AppLayout() {
             />
           )}
           <IconButton onClick={(e) => setAnchorEl(e.currentTarget)} size="small">
-            <Avatar sx={{ width: 32, height: 32, bgcolor: user ? roleColors[user.role] : 'secondary.main' }}>
+            <Avatar
+              sx={{
+                width: 32,
+                height: 32,
+                bgcolor: user ? roleColors[user.role] : 'secondary.main'
+              }}
+            >
               {user?.name?.charAt(0) ?? '?'}
             </Avatar>
           </IconButton>
@@ -140,24 +158,56 @@ export function AppLayout() {
         sx={{
           width: DRAWER_WIDTH,
           flexShrink: 0,
-          [`& .MuiDrawer-paper`]: { width: DRAWER_WIDTH, boxSizing: 'border-box', borderRight: 'none' }
+          display: { xs: 'none', md: 'block' },
+          [`& .MuiDrawer-paper`]: {
+            width: DRAWER_WIDTH,
+            boxSizing: 'border-box',
+            borderRight: 'none',
+            bgcolor: '#09243A',
+            color: '#FFFFFF'
+          }
         }}
       >
-        <Toolbar />
-        <List sx={{ px: 1, pt: 2 }}>
+        <Toolbar sx={{ minHeight: '72px !important', px: 2.5 }}>
+          <Box
+            component="img"
+            src={igzLogo}
+            alt="IGZ – Die SAP Ingenieure"
+            sx={{ width: '100%', height: 'auto', borderRadius: 0.5 }}
+          />
+        </Toolbar>
+        <Typography
+          variant="overline"
+          sx={{
+            color: '#7FA0B7',
+            px: 3,
+            pt: 3,
+            pb: 1,
+            fontSize: '0.66rem',
+            letterSpacing: '0.12em'
+          }}
+        >
+          Use Case Management
+        </Typography>
+        <List sx={{ px: 1.5 }}>
           {NAV_ITEMS.map((item) => (
             <ListItemButton
               key={item.path}
               selected={location.pathname === item.path}
               onClick={() => navigate(item.path)}
               sx={{
-                borderRadius: 2,
+                color: '#B7C9D6',
+                borderRadius: 1.5,
                 mb: 0.5,
+                minHeight: 48,
+                '& .MuiListItemIcon-root': { color: '#93ADBE', minWidth: 42 },
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#FFFFFF' },
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
+                  bgcolor: '#1F4E79',
                   color: '#fff',
+                  boxShadow: 'inset 3px 0 #64B866',
                   '& .MuiListItemIcon-root': { color: '#fff' },
-                  '&:hover': { bgcolor: 'primary.dark' }
+                  '&:hover': { bgcolor: '#1F4E79' }
                 }
               }}
             >
@@ -165,19 +215,24 @@ export function AppLayout() {
               <ListItemText primary={item.label} />
             </ListItemButton>
           ))}
-          {ADMIN_NAV_ITEMS.filter((item) => user && item.roles.includes(user.role)).map((item) => (
+          {availableAdminItems.map((item) => (
             <ListItemButton
               key={item.path}
               selected={location.pathname === item.path}
               onClick={() => navigate(item.path)}
               sx={{
-                borderRadius: 2,
+                color: '#B7C9D6',
+                borderRadius: 1.5,
                 mb: 0.5,
+                minHeight: 48,
+                '& .MuiListItemIcon-root': { color: '#93ADBE', minWidth: 42 },
+                '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#FFFFFF' },
                 '&.Mui-selected': {
-                  bgcolor: 'primary.main',
+                  bgcolor: '#1F4E79',
                   color: '#fff',
+                  boxShadow: 'inset 3px 0 #64B866',
                   '& .MuiListItemIcon-root': { color: '#fff' },
-                  '&:hover': { bgcolor: 'primary.dark' }
+                  '&:hover': { bgcolor: '#1F4E79' }
                 }
               }}
             >
@@ -187,11 +242,65 @@ export function AppLayout() {
           ))}
         </List>
       </Drawer>
-      <Box component="main" sx={{ flexGrow: 1, bgcolor: 'background.default', minHeight: '100vh' }}>
-        <Toolbar />
-        <Box sx={{ p: { xs: 2, md: 3 } }}>
+      <Box
+        component="main"
+        sx={{
+          flexGrow: 1,
+          bgcolor: 'background.default',
+          minHeight: '100vh',
+          pb: { xs: 9, md: 0 }
+        }}
+      >
+        <Toolbar sx={{ minHeight: { xs: 64, md: 72 } }} />
+        <Box sx={{ p: { xs: 2, sm: 3, lg: 4 }, maxWidth: 1500, mx: 'auto' }}>
           <Outlet />
         </Box>
+      </Box>
+      <Box
+        component="nav"
+        aria-label="Mobile Navigation"
+        sx={{
+          display: { xs: 'grid', md: 'none' },
+          gridTemplateColumns: `repeat(${mobileNavItems.length}, minmax(0, 1fr))`,
+          position: 'fixed',
+          zIndex: (t) => t.zIndex.appBar,
+          inset: 'auto 0 0',
+          minHeight: 66,
+          bgcolor: 'background.paper',
+          borderTop: 1,
+          borderColor: 'divider',
+          boxShadow: '0 -9px 25px rgba(16,45,65,0.08)'
+        }}
+      >
+        {mobileNavItems.map((item) => {
+          const selected = location.pathname === item.path;
+          return (
+            <ListItemButton
+              key={item.path}
+              selected={selected}
+              onClick={() => navigate(item.path)}
+              sx={{
+                minWidth: 0,
+                py: 0.75,
+                px: 0.5,
+                flexDirection: 'column',
+                justifyContent: 'center',
+                gap: 0.25,
+                color: selected ? 'primary.main' : 'text.secondary',
+                '&.Mui-selected': { bgcolor: 'rgba(31,78,121,0.06)' }
+              }}
+            >
+              <Box sx={{ display: 'flex', '& svg': { fontSize: 21 } }}>{item.icon}</Box>
+              <Typography
+                variant="caption"
+                noWrap
+                sx={{ maxWidth: '100%', fontSize: '0.62rem', fontWeight: 700 }}
+              >
+                {item.label}
+              </Typography>
+            </ListItemButton>
+          );
+        })}
       </Box>
     </Box>
   );

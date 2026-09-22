@@ -31,11 +31,13 @@ export type UseCaseUpdateInput = Partial<
 >;
 
 export interface PortfolioField {
+  id: string;
+  title: string;
   department: string;
-  implementationEffort: string | null;
-  aiSolutionType: string | null;
-  estimatedUsers: number | null;
+  responsible: string | null;
+  targetDate: string | null;
   status: string;
+  _count: { evaluations: number };
 }
 
 // Abstraction over UseCase persistence, kept Prisma-specific here only
@@ -100,11 +102,13 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
     return prisma.useCase.findMany({
       where: { status: { not: UseCaseStatus.ARCHIVED } },
       select: {
+        id: true,
+        title: true,
         department: true,
-        implementationEffort: true,
-        aiSolutionType: true,
-        estimatedUsers: true,
-        status: true
+        responsible: true,
+        targetDate: true,
+        status: true,
+        _count: { select: { evaluations: true } }
       }
     });
   }

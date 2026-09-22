@@ -14,14 +14,23 @@ export interface DashboardStats {
 }
 
 export interface PortfolioStats {
-  byDepartment: Record<string, number>;
-  byEffort: Record<string, number>;
   byRisk: Record<string, number>;
   byStrategicRelevance: Record<string, number>;
-  byAiSolutionType: Record<string, number>;
-  totalEstimatedUsers: number;
   openDecisions: number;
-  avgDecisionDays: number | null;
+  needMoreInfo: number;
+  missingEvaluations: number;
+  overdueTargetDates: number;
+  attentionItems: DecisionAttentionItem[];
+}
+
+export interface DecisionAttentionItem {
+  id: string;
+  title: string;
+  department: string;
+  responsible: string | null;
+  targetDate: string | null;
+  status: UseCaseStatus;
+  reasons: Array<'NEED_MORE_INFO' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'>;
 }
 
 export interface ActivityFeedEntry {
@@ -39,6 +48,13 @@ const OPEN_DECISION_STATUSES: string[] = [
   UseCaseStatus.ON_HOLD
 ];
 const DECISION_STATUSES = new Set([UseCaseStatus.APPROVED, UseCaseStatus.REJECTED]);
+
+function isOverdueTargetDate(targetDate: string | null, now: Date): boolean {
+  if (!targetDate) return false;
+  const date = new Date(targetDate);
+  if (Number.isNaN(date.getTime())) return false;
+  return date < new Date(now.getFullYear(), now.getMonth(), now.getDate());
+}
 
 function tally(values: Array<string | null | undefined>): Record<string, number> {
   const result: Record<string, number> = {};
@@ -94,22 +110,45 @@ export class DashboardService {
     return { total, byStatus };
   }
 
-  async portfolioStats(): Promise<PortfolioStats> {
-    const [fields, riskAndRelevance, transitions] = await Promise.all([
+  async portfolioStats(now = new Date()): Promise<PortfolioStats> {
+    const [fields, riskAndRelevance] = await Promise.all([
       this.useCases.findPortfolioFields(),
-      this.evaluations.findAllRiskAndRelevance(),
-      this.history.findAllOrdered()
+      this.evaluations.findAllRiskAndRelevance()
     ]);
 
+    const attentionItems = fields
+      .map((field): DecisionAttentionItem | null => {
+        const reasons: DecisionAttentionItem['reasons'] = [];
+        if (field.status === UseCaseStatus.NEED_MORE_INFO) reasons.push('NEED_MORE_INFO');
+        if (isOverdueTargetDate(field.targetDate, now)) reasons.push('OVERDUE_TARGET_DATE');
+        if (field._count.evaluations === 0 && OPEN_DECISION_STATUSES.includes(field.status)) {
+          reasons.push('MISSING_EVALUATION');
+        }
+
+        if (reasons.length === 0) return null;
+        return {
+          id: field.id,
+          title: field.title,
+          department: field.department,
+          responsible: field.responsible,
+          targetDate: field.targetDate,
+          status: field.status as UseCaseStatus,
+          reasons
+        };
+      })
+      .filter((item): item is DecisionAttentionItem => item !== null)
+      .sort((left, right) => right.reasons.length - left.reasons.length || left.title.localeCompare(right.title, 'de'));
+
     return {
-      byDepartment: tally(fields.map((f) => f.department)),
-      byEffort: tally(fields.map((f) => f.implementationEffort)),
       byRisk: tally(riskAndRelevance.map((r) => r.risk)),
       byStrategicRelevance: tally(riskAndRelevance.map((r) => r.strategicRelevance)),
-      byAiSolutionType: tally(fields.map((f) => f.aiSolutionType)),
-      totalEstimatedUsers: fields.reduce((sum, f) => sum + (f.estimatedUsers ?? 0), 0),
       openDecisions: fields.filter((f) => OPEN_DECISION_STATUSES.includes(f.status)).length,
-      avgDecisionDays: computeAvgDecisionDays(transitions)
+      needMoreInfo: fields.filter((f) => f.status === UseCaseStatus.NEED_MORE_INFO).length,
+      missingEvaluations: fields.filter(
+        (f) => f._count.evaluations === 0 && OPEN_DECISION_STATUSES.includes(f.status)
+      ).length,
+      overdueTargetDates: fields.filter((f) => isOverdueTargetDate(f.targetDate, now)).length,
+      attentionItems
     };
   }
 

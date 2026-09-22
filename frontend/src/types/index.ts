@@ -230,14 +230,23 @@ export interface DashboardStats {
 }
 
 export interface PortfolioStats {
-  byDepartment: Record<string, number>;
-  byEffort: Record<string, number>;
   byRisk: Record<string, number>;
   byStrategicRelevance: Record<string, number>;
-  byAiSolutionType: Record<string, number>;
-  totalEstimatedUsers: number;
   openDecisions: number;
-  avgDecisionDays: number | null;
+  needMoreInfo: number;
+  missingEvaluations: number;
+  overdueTargetDates: number;
+  attentionItems: DecisionAttentionItem[];
+}
+
+export interface DecisionAttentionItem {
+  id: string;
+  title: string;
+  department: string;
+  responsible: string | null;
+  targetDate: string | null;
+  status: UseCaseStatus;
+  reasons: Array<'NEED_MORE_INFO' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'>;
 }
 
 export interface ActivityFeedEntry {

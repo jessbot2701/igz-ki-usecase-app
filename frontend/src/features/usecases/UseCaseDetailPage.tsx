@@ -32,8 +32,6 @@ import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useCaseApi } from '../../api/useCaseApi';
 import { apiClient } from '../../api/client';
-import { IllustrationPanel } from '../../components/IllustrationPanel';
-import { statusColors } from '../../theme/theme';
 import {
   AI_SOLUTION_TYPE_LABELS,
   BENEFIT_TYPE_LABELS,
@@ -56,18 +54,29 @@ function DetailField({
   label: string;
   value?: string | number | string[] | null;
 }) {
-  if (value === undefined || value === null || value === '' || (Array.isArray(value) && value.length === 0)) {
+  if (
+    value === undefined ||
+    value === null ||
+    value === '' ||
+    (Array.isArray(value) && value.length === 0)
+  ) {
     return null;
   }
   const display = Array.isArray(value) ? value.join(', ') : value;
   return (
     <Grid item xs={12} sm={6}>
-      <Typography variant="caption" color="text.secondary">
-        {label}
-      </Typography>
-      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap' }}>
-        {display}
-      </Typography>
+      <Box sx={{ height: '100%', bgcolor: 'background.default', borderRadius: 2, p: 2 }}>
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 800 }}
+        >
+          {label}
+        </Typography>
+        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap', mt: 0.75 }}>
+          {display}
+        </Typography>
+      </Box>
     </Grid>
   );
 }
@@ -156,7 +165,8 @@ export function UseCaseDetailPage() {
     }
   });
   const summaryMutation = useMutation({
-    mutationFn: () => apiClient.post<{ summary: string }>(`/use-cases/${id}/ai/summarize`).then((r) => r.data),
+    mutationFn: () =>
+      apiClient.post<{ summary: string }>(`/use-cases/${id}/ai/summarize`).then((r) => r.data),
     onSuccess: (data) => setAiSummary(data.summary)
   });
 
@@ -169,42 +179,75 @@ export function UseCaseDetailPage() {
 
   return (
     <Box>
-      <IllustrationPanel
-        illustrationKey="decision"
-        icon={<DescriptionOutlinedIcon />}
-        gradient={`linear-gradient(135deg, ${statusColors[useCase.status]} 0%, #312E81 100%)`}
-        height={96}
-      />
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 2 }}>
-        <Box>
-          <Typography variant="h4">{useCase.title}</Typography>
-          <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 1 }}>
-            <StatusChip status={useCase.status} />
-            <Chip label={useCase.department} variant="outlined" size="small" />
-            <Chip label={`Einreicher: ${useCase.requestor}`} variant="outlined" size="small" />
-          </Stack>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button startIcon={<AutoAwesomeIcon />} onClick={() => summaryMutation.mutate()}>
-            KI-Zusammenfassung
-          </Button>
-          <Button startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
-            Bearbeiten
-          </Button>
-          {(useCase.allowedNextStatuses?.length ?? 0) > 0 && (
-            <Button
-              variant="contained"
-              startIcon={<SwapHorizIcon />}
-              onClick={() => setStatusOpen(true)}
+      <Box
+        sx={{
+          position: 'relative',
+          overflow: 'hidden',
+          bgcolor: 'background.paper',
+          border: 1,
+          borderColor: 'divider',
+          borderRadius: 3,
+          p: { xs: 2.5, md: 3.5 },
+          mb: 2.5,
+          boxShadow: '0 12px 30px rgba(18,61,99,0.07)',
+          '&::before': {
+            content: '""',
+            position: 'absolute',
+            inset: '0 auto 0 0',
+            width: 5,
+            bgcolor: 'secondary.main'
+          }
+        }}
+      >
+        <Stack
+          direction={{ xs: 'column', lg: 'row' }}
+          justifyContent="space-between"
+          alignItems={{ xs: 'flex-start', lg: 'center' }}
+          spacing={2.5}
+        >
+          <Box>
+            <Typography
+              variant="overline"
+              sx={{ color: 'primary.light', fontWeight: 800, letterSpacing: '0.12em' }}
             >
-              Status ändern
+              Use Case Detail
+            </Typography>
+            <Typography variant="h4">{useCase.title}</Typography>
+            <Stack
+              direction="row"
+              spacing={1}
+              useFlexGap
+              flexWrap="wrap"
+              alignItems="center"
+              sx={{ mt: 1.5 }}
+            >
+              <StatusChip status={useCase.status} />
+              <Chip label={useCase.department} variant="outlined" size="small" />
+              <Chip label={`Einreicher: ${useCase.requestor}`} variant="outlined" size="small" />
+            </Stack>
+          </Box>
+          <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
+            <Button startIcon={<AutoAwesomeIcon />} onClick={() => summaryMutation.mutate()}>
+              KI-Zusammenfassung
             </Button>
-          )}
+            <Button startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
+              Bearbeiten
+            </Button>
+            {(useCase.allowedNextStatuses?.length ?? 0) > 0 && (
+              <Button
+                variant="contained"
+                startIcon={<SwapHorizIcon />}
+                onClick={() => setStatusOpen(true)}
+              >
+                Status ändern
+              </Button>
+            )}
+          </Stack>
         </Stack>
-      </Stack>
+      </Box>
 
       {aiSummary && (
-        <Card sx={{ mb: 2, bgcolor: '#EEF2FF' }}>
+        <Card sx={{ mb: 2, bgcolor: 'rgba(67,168,94,0.08)', borderColor: 'rgba(67,168,94,0.28)' }}>
           <CardContent>
             <Typography variant="subtitle2" color="primary">
               KI-Zusammenfassung (Mock)
@@ -214,7 +257,13 @@ export function UseCaseDetailPage() {
         </Card>
       )}
 
-      <Tabs value={tab} onChange={(_e, v) => setTab(v)} sx={{ mb: 2 }}>
+      <Tabs
+        value={tab}
+        onChange={(_e, v) => setTab(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        sx={{ mb: 2 }}
+      >
         <Tab icon={<DescriptionOutlinedIcon />} iconPosition="start" label="Übersicht" />
         <Tab icon={<RateReviewIcon />} iconPosition="start" label="Bewertungen" />
         <Tab icon={<ChatBubbleOutlineIcon />} iconPosition="start" label="Kommentare" />
@@ -224,7 +273,7 @@ export function UseCaseDetailPage() {
 
       {tab === 0 && (
         <Card>
-          <CardContent>
+          <CardContent sx={{ p: { xs: 2, md: 3 } }}>
             <Grid container spacing={2}>
               <DetailField label="Problembeschreibung" value={useCase.problemDescription} />
               <DetailField label="Aktueller Prozess" value={useCase.currentProcess} />
@@ -233,13 +282,18 @@ export function UseCaseDetailPage() {
               <DetailField label="Lösungsidee" value={useCase.solutionIdea} />
               <DetailField label="Datenquellen" value={useCase.dataSources} />
               <DetailField label="Erwartetes Ergebnis" value={useCase.expectedOutput} />
-              <DetailField label="Reichweite" value={useCase.reach ? REACH_LABELS[useCase.reach] : null} />
+              <DetailField
+                label="Reichweite"
+                value={useCase.reach ? REACH_LABELS[useCase.reach] : null}
+              />
               <DetailField label="Weitere Angaben zur Zielgruppe" value={useCase.targetGroup} />
               <DetailField label="Geschätzte Nutzerzahl" value={useCase.estimatedUsers} />
               <DetailField label="Nutzungshäufigkeit" value={useCase.usageFrequency} />
               <DetailField
                 label="Nutzenart"
-                value={useCase.benefitTypes?.map((t) => BENEFIT_TYPE_LABELS[t as keyof typeof BENEFIT_TYPE_LABELS])}
+                value={useCase.benefitTypes?.map(
+                  (t) => BENEFIT_TYPE_LABELS[t as keyof typeof BENEFIT_TYPE_LABELS]
+                )}
               />
               <DetailField
                 label="Geschätzter Effekt"
@@ -259,7 +313,9 @@ export function UseCaseDetailPage() {
               />
               <DetailField
                 label="Umsetzungsaufwand"
-                value={useCase.implementationEffort ? LEVEL_LABELS[useCase.implementationEffort] : null}
+                value={
+                  useCase.implementationEffort ? LEVEL_LABELS[useCase.implementationEffort] : null
+                }
               />
               <DetailField label="Abhängigkeiten" value={useCase.dependencies} />
               <DetailField
@@ -268,7 +324,10 @@ export function UseCaseDetailPage() {
                   (c) => DATA_CLASSIFICATION_LABELS[c as keyof typeof DATA_CLASSIFICATION_LABELS]
                 )}
               />
-              <DetailField label="Besondere Risiken oder Anforderungen" value={useCase.riskAssessment} />
+              <DetailField
+                label="Besondere Risiken oder Anforderungen"
+                value={useCase.riskAssessment}
+              />
               <DetailField label="Weitere Sicherheitshinweise" value={useCase.securityNotes} />
               <DetailField label="Verantwortlich" value={useCase.responsible} />
               <DetailField label="Zieltermin / Review" value={useCase.targetDate} />
@@ -278,7 +337,7 @@ export function UseCaseDetailPage() {
       )}
 
       {tab === 1 && (
-        <Box>
+        <Card sx={{ p: { xs: 2, md: 2.5 } }}>
           {canEvaluate && (
             <Button startIcon={<RateReviewIcon />} onClick={() => setEvalOpen(true)} sx={{ mb: 2 }}>
               Neue Bewertung
@@ -305,11 +364,11 @@ export function UseCaseDetailPage() {
               <Typography color="text.secondary">Noch keine Bewertungen vorhanden.</Typography>
             )}
           </Stack>
-        </Box>
+        </Card>
       )}
 
       {tab === 2 && (
-        <Box>
+        <Card sx={{ p: { xs: 2, md: 2.5 } }}>
           <Stack direction="row" spacing={1} sx={{ mb: 2 }}>
             <TextField
               fullWidth
@@ -335,26 +394,28 @@ export function UseCaseDetailPage() {
               </ListItem>
             ))}
           </List>
-        </Box>
+        </Card>
       )}
 
       {tab === 3 && (
-        <List>
-          {historyQuery.data?.map((h) => (
-            <ListItem key={h.id} divider>
-              <ListItemText
-                primary={`${h.fromStatus ?? '—'} → ${h.toStatus}`}
-                secondary={`${h.changedBy.name} · ${new Date(h.changedAt).toLocaleString('de-DE')}${
-                  h.note ? ` · ${h.note}` : ''
-                }`}
-              />
-            </ListItem>
-          ))}
-        </List>
+        <Card>
+          <List disablePadding>
+            {historyQuery.data?.map((h) => (
+              <ListItem key={h.id} divider>
+                <ListItemText
+                  primary={`${h.fromStatus ?? '—'} → ${h.toStatus}`}
+                  secondary={`${h.changedBy.name} · ${new Date(h.changedAt).toLocaleString('de-DE')}${
+                    h.note ? ` · ${h.note}` : ''
+                  }`}
+                />
+              </ListItem>
+            ))}
+          </List>
+        </Card>
       )}
 
       {tab === 4 && (
-        <Box>
+        <Card sx={{ p: { xs: 2, md: 2.5 } }}>
           <input
             ref={fileInputRef}
             type="file"
@@ -365,7 +426,11 @@ export function UseCaseDetailPage() {
               e.target.value = '';
             }}
           />
-          <Button startIcon={<UploadIcon />} onClick={() => fileInputRef.current?.click()} sx={{ mb: 2 }}>
+          <Button
+            startIcon={<UploadIcon />}
+            onClick={() => fileInputRef.current?.click()}
+            sx={{ mb: 2 }}
+          >
             Datei hochladen
           </Button>
           <List>
@@ -392,7 +457,7 @@ export function UseCaseDetailPage() {
               </ListItem>
             ))}
           </List>
-        </Box>
+        </Card>
       )}
 
       <UseCaseWizardDialog

@@ -1,10 +1,9 @@
 import { useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import { useAuth } from '../../context/AuthContext';
-import { IllustrationPanel } from '../../components/IllustrationPanel';
 import { APP_BAR_GRADIENT } from '../../theme/theme';
+import igzLogo from '../../assets/igz-logo.jpg';
 
 export function LoginPage() {
   const { login, loading } = useAuth();
@@ -37,11 +36,16 @@ export function LoginPage() {
         p: 2
       }}
     >
-      <Paper elevation={0} sx={{ p: 5, width: 420, borderRadius: 4 }}>
-        <IllustrationPanel illustrationKey="login" icon={<AutoAwesomeIcon />} height={140} />
+      <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: 430, borderRadius: 3 }}>
         <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
+          <Box
+            component="img"
+            src={igzLogo}
+            alt="IGZ – Die SAP Ingenieure"
+            sx={{ width: 260, maxWidth: '100%', mb: 3 }}
+          />
           <Typography variant="h5" fontWeight={700}>
-            IGZ AI Use Case Portal
+            AI Use Case Portal
           </Typography>
           <Typography variant="body2" color="text.secondary" textAlign="center">
             Erfassen, bewerten und verwalten Sie Ihre AI Use Cases zentral.

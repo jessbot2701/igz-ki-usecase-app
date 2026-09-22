@@ -265,8 +265,7 @@ describe('IGZ Use Case API (integration)', () => {
           department: 'Finanzen',
           problemDescription: 'Ein ausreichend langes Problem.',
           solutionIdea: 'Eine ausreichend lange Lösungsidee.',
-          estimatedUsers: 42,
-          implementationEffort: 'MITTEL'
+          targetDate: '2000-01-01'
         });
       expect(createRes.status).toBe(201);
 
@@ -274,9 +273,12 @@ describe('IGZ Use Case API (integration)', () => {
         .get('/api/v1/dashboard/portfolio')
         .set('Authorization', `Bearer ${coreTeamToken}`);
       expect(coreTeamRes.status).toBe(200);
-      expect(coreTeamRes.body.byDepartment.Finanzen).toBe(1);
-      expect(coreTeamRes.body.byEffort.MITTEL).toBe(1);
-      expect(coreTeamRes.body.totalEstimatedUsers).toBe(42);
+      expect(coreTeamRes.body.overdueTargetDates).toBe(1);
+      expect(coreTeamRes.body.attentionItems).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ title: 'Portfolio Use Case', reasons: ['OVERDUE_TARGET_DATE'] })
+        ])
+      );
 
       const adminRes = await request(app)
         .get('/api/v1/dashboard/portfolio')
