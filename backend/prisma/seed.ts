@@ -17,6 +17,15 @@ import {
 const prisma = new PrismaClient();
 
 const SEED_PASSWORD = 'Passwort123!';
+const SEED_DEPARTMENTS = ['AI Core Team', 'Finanzen', 'IT', 'Personal', 'Produktion', 'Recht', 'Vertrieb'];
+
+async function seedDepartments() {
+  await Promise.all(
+    SEED_DEPARTMENTS.map((name) =>
+      prisma.department.upsert({ where: { name }, update: {}, create: { name } })
+    )
+  );
+}
 
 async function upsertUser(name: string, email: string, role: Role, department: string) {
   const passwordHash = await bcrypt.hash(SEED_PASSWORD, 10);
@@ -28,6 +37,7 @@ async function upsertUser(name: string, email: string, role: Role, department: s
 }
 
 async function main() {
+  await seedDepartments();
   const employee = await upsertUser('Anna Employee', 'employee@igz.example', Role.EMPLOYEE, 'Vertrieb');
   const champion = await upsertUser('Chris Champion', 'champion@igz.example', Role.AI_CHAMPION, 'IT');
   const coreTeam = await upsertUser('Cora Coreteam', 'coreteam@igz.example', Role.AI_CORE_TEAM, 'AI Core Team');

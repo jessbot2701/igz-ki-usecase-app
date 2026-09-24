@@ -20,7 +20,8 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import { DataGrid, GridColDef } from '@mui/x-data-grid';
 import { CreateUserInput, userApi } from '../../api/userApi';
-import { ROLE_LABELS, Role, User } from '../../types';
+import { departmentApi } from '../../api/departmentApi';
+import { Department, ROLE_LABELS, Role, User } from '../../types';
 import { useNotification } from '../../context/NotificationContext';
 import { dataGridSx } from '../../theme/theme';
 
@@ -28,12 +29,14 @@ function CreateUserDialog({
   open,
   onClose,
   onCreate,
-  submitting
+  submitting,
+  departments
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (input: CreateUserInput) => void;
   submitting: boolean;
+  departments: Department[];
 }) {
   const [form, setForm] = useState<CreateUserInput>({
     name: '',
@@ -82,11 +85,16 @@ function CreateUserDialog({
             ))}
           </TextField>
           <TextField
+            select
             label="Bereich"
             value={form.department}
             onChange={(e) => setForm({ ...form, department: e.target.value })}
             fullWidth
-          />
+          >
+            {departments.map((department) => (
+              <MenuItem key={department.id} value={department.name}>{department.name}</MenuItem>
+            ))}
+          </TextField>
         </Stack>
       </DialogContent>
       <DialogActions sx={{ p: 2 }}>
@@ -105,6 +113,10 @@ export function UsersAdminPage() {
   const [createOpen, setCreateOpen] = useState(false);
 
   const { data, isLoading } = useQuery({ queryKey: ['admin-users'], queryFn: userApi.list });
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentApi.list()
+  });
 
   const createMutation = useMutation({
     mutationFn: userApi.create,
@@ -233,6 +245,7 @@ export function UsersAdminPage() {
         open={createOpen}
         onClose={() => setCreateOpen(false)}
         submitting={createMutation.isPending}
+        departments={departments}
         onCreate={(input) => createMutation.mutate(input)}
       />
     </Box>

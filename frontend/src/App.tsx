@@ -9,6 +9,7 @@ import { UseCaseListPage } from './features/usecases/UseCaseListPage';
 import { UseCaseDetailPage } from './features/usecases/UseCaseDetailPage';
 import { UsersAdminPage } from './features/admin/UsersAdminPage';
 import { ActivityLogPage } from './features/admin/ActivityLogPage';
+import { MasterDataPage } from './features/admin/MasterDataPage';
 
 export function App() {
   const { user } = useAuth();
@@ -40,6 +41,14 @@ export function App() {
           element={
             <RequireRole roles={[Role.ADMINISTRATOR, Role.AI_CORE_TEAM]}>
               <ActivityLogPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="admin/master-data"
+          element={
+            <RequireRole roles={[Role.ADMINISTRATOR]}>
+              <MasterDataPage />
             </RequireRole>
           }
         />

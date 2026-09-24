@@ -31,6 +31,7 @@ import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
 import { useCaseApi } from '../../api/useCaseApi';
+import { departmentApi } from '../../api/departmentApi';
 import { apiClient } from '../../api/client';
 import {
   AI_SOLUTION_TYPE_LABELS,
@@ -171,6 +172,10 @@ export function UseCaseDetailPage() {
   });
 
   const useCase = useCaseQuery.data;
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentApi.list()
+  });
   const canEvaluate = user && (user.role === Role.AI_CHAMPION || user.role === Role.AI_CORE_TEAM);
 
   if (!useCase) {
@@ -465,6 +470,7 @@ export function UseCaseDetailPage() {
         title="Use Case bearbeiten"
         initialValues={useCase}
         submitting={updateMutation.isPending}
+        departments={departments}
         onClose={() => setEditOpen(false)}
         onSubmit={(values) => updateMutation.mutate(values)}
       />

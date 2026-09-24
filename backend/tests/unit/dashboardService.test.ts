@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { computeAvgDecisionDays } from '../../src/services/dashboardService';
+import {
+  computeAvgDecisionDays,
+  computeDecisionDurationTrend
+} from '../../src/services/dashboardService';
 import { UseCaseStatus } from '../../src/domain/enums';
 
 function at(daysFromEpoch: number): Date {
@@ -53,5 +56,32 @@ describe('computeAvgDecisionDays', () => {
       { useCaseId: 'uc-1', toStatus: UseCaseStatus.APPROVED, changedAt: at(6) }
     ]);
     expect(result).toBe(6);
+  });
+});
+
+describe('computeDecisionDurationTrend', () => {
+  it('groups decided use cases by decision month', () => {
+    const result = computeDecisionDurationTrend([
+      { useCaseId: 'uc-1', toStatus: UseCaseStatus.SUBMITTED, changedAt: new Date('2026-01-01') },
+      { useCaseId: 'uc-1', toStatus: UseCaseStatus.APPROVED, changedAt: new Date('2026-01-11') },
+      { useCaseId: 'uc-2', toStatus: UseCaseStatus.SUBMITTED, changedAt: new Date('2026-02-01') },
+      { useCaseId: 'uc-2', toStatus: UseCaseStatus.REJECTED, changedAt: new Date('2026-02-21') }
+    ]);
+
+    expect(result.averageDays).toBe(15);
+    expect(result.decidedCount).toBe(2);
+    expect(result.trend).toEqual([
+      { month: '2026-01', averageDays: 10, decidedCount: 1 },
+      { month: '2026-02', averageDays: 20, decidedCount: 1 }
+    ]);
+  });
+
+  it('returns an empty summary without decisions', () => {
+    expect(computeDecisionDurationTrend([])).toEqual({
+      averageDays: null,
+      decidedCount: 0,
+      targetDays: 10,
+      trend: []
+    });
   });
 });

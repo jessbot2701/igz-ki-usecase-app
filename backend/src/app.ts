@@ -10,6 +10,7 @@ import { useCaseRouter } from './routes/useCaseRoutes';
 import { dashboardRouter } from './routes/dashboardRoutes';
 import { adminRouter } from './routes/adminRoutes';
 import { attachmentRouter } from './routes/attachmentRoutes';
+import { departmentRouter } from './routes/departmentRoutes';
 
 export function createApp(): Express {
   const app = express();
@@ -24,6 +25,7 @@ export function createApp(): Express {
 
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/users', userRouter);
+  app.use('/api/v1/departments', departmentRouter);
   app.use('/api/v1/use-cases', useCaseRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/admin', adminRouter);

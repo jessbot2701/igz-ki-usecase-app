@@ -28,6 +28,10 @@ export const roleColors: Record<Role, string> = {
 const PRIMARY = { main: '#1F4E79', light: '#29668D', dark: '#09243A' };
 const ACCENT = '#43A85E';
 
+export const BRAND_NAVY = PRIMARY.dark;
+export const BRAND_BLUE = PRIMARY.main;
+export const BRAND_GREEN = ACCENT;
+
 export const APP_BAR_GRADIENT = `linear-gradient(135deg, ${PRIMARY.dark} 0%, #123D63 68%, #1F4E79 100%)`;
 
 export const dataGridSx: SxProps<Theme> = {
@@ -82,7 +86,10 @@ export function getTheme(mode: ThemeMode): Theme {
     components: {
       MuiPaper: {
         styleOverrides: {
-          root: { backgroundImage: 'none' }
+          root: {
+            backgroundImage: 'none',
+            borderRadius: 12
+          }
         }
       },
       MuiCard: {
@@ -92,13 +99,29 @@ export function getTheme(mode: ThemeMode): Theme {
               ? '0 8px 24px rgba(0, 0, 0, 0.26)'
               : '0 5px 18px rgba(17, 51, 76, 0.05)',
             border: `1px solid ${isDark ? '#2D4960' : 'rgba(23, 49, 72, 0.08)'}`,
-            borderRadius: 15
+            borderRadius: 16
           }
         }
       },
       MuiButton: {
         styleOverrides: {
-          root: { textTransform: 'none', fontWeight: 700, borderRadius: 8 }
+          root: {
+            textTransform: 'none',
+            fontWeight: 700,
+            borderRadius: 8,
+            boxShadow: 'none',
+            '&:hover': { boxShadow: '0 8px 18px rgba(18, 61, 99, 0.14)' }
+          },
+          contained: { '&:hover': { boxShadow: '0 8px 18px rgba(18, 61, 99, 0.2)' } },
+          outlined: {
+            color: isDark ? '#B9D8F0' : PRIMARY.main,
+            borderColor: isDark ? '#6D9FC4' : 'rgba(31, 78, 121, 0.5)',
+            '&:hover': {
+              color: isDark ? '#FFFFFF' : PRIMARY.dark,
+              borderColor: isDark ? '#B9D8F0' : PRIMARY.main,
+              backgroundColor: isDark ? 'rgba(185,216,240,0.1)' : 'rgba(31,78,121,0.05)'
+            }
+          }
         }
       },
       MuiChip: {
@@ -120,13 +143,38 @@ export function getTheme(mode: ThemeMode): Theme {
       MuiTextField: {
         styleOverrides: {
           root: {
-            '& .MuiOutlinedInput-root': { borderRadius: 8 }
+            '& .MuiOutlinedInput-root': {
+              borderRadius: 8,
+              backgroundColor: isDark ? 'rgba(255,255,255,0.025)' : '#FFFFFF',
+              transition: 'border-color 160ms ease, box-shadow 160ms ease',
+              '&.Mui-focused': {
+                boxShadow: `0 0 0 3px ${isDark ? 'rgba(67,168,94,0.18)' : 'rgba(67,168,94,0.12)'}`
+              }
+            }
           }
+        }
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          head: {
+            color: isDark ? '#AFC0CC' : '#617486',
+            fontSize: '0.72rem',
+            fontWeight: 800,
+            letterSpacing: '0.06em',
+            textTransform: 'uppercase',
+            backgroundColor: isDark ? '#102D41' : '#F5F7F8'
+          },
+          root: { borderColor: isDark ? '#2D4960' : '#E2E8EC' }
         }
       },
       MuiDialog: {
         styleOverrides: {
-          paper: { borderRadius: 15 }
+          paper: {
+            borderRadius: 16,
+            boxShadow: isDark
+              ? '0 20px 60px rgba(0, 0, 0, 0.42)'
+              : '0 20px 60px rgba(18, 61, 99, 0.16)'
+          }
         }
       },
       MuiDialogTitle: {

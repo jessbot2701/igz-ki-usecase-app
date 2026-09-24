@@ -9,7 +9,14 @@ export function StatusChip({ status }: { status: UseCaseStatus }) {
     <Chip
       label={STATUS_LABELS[status]}
       size="small"
-      sx={{ bgcolor: `${color}18`, color, border: `1px solid ${color}35` }}
+      sx={{
+        width: 112,
+        height: 28,
+        justifyContent: 'center',
+        bgcolor: `${color}18`,
+        color,
+        border: `1px solid ${color}35`
+      }}
     />
   );
 }

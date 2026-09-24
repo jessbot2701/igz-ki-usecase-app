@@ -22,6 +22,9 @@ import SecurityOutlinedIcon from '@mui/icons-material/SecurityOutlined';
 import FactCheckOutlinedIcon from '@mui/icons-material/FactCheckOutlined';
 import { IllustrationKey } from '../../assets/illustrations/manifest';
 import { IllustrationPanel } from '../../components/IllustrationPanel';
+import pptAbstractShapes from '../../assets/illustrations/ppt-abstract-shapes.jpg';
+import pptNetworkCool from '../../assets/illustrations/ppt-network-cool.jpg';
+import pptNetworkWarm from '../../assets/illustrations/ppt-network-warm.jpg';
 import {
   AiSolutionType,
   AI_SOLUTION_TYPE_LABELS,
@@ -45,15 +48,16 @@ interface StepDefinition {
   title: string;
   illustrationKey: IllustrationKey;
   icon: JSX.Element;
+  imageSrc?: string;
 }
 
 const STEP_DEFINITIONS: StepDefinition[] = [
-  { title: 'Basisinformationen', illustrationKey: 'basics', icon: <InfoOutlinedIcon /> },
-  { title: 'Ausgangssituation & Problem', illustrationKey: 'problem', icon: <ReportProblemOutlinedIcon /> },
-  { title: 'Lösungsidee & Zielgruppe', illustrationKey: 'solution', icon: <LightbulbOutlinedIcon /> },
+  { title: 'Basisinformationen', illustrationKey: 'basics', icon: <InfoOutlinedIcon />, imageSrc: pptAbstractShapes },
+  { title: 'Ausgangssituation & Problem', illustrationKey: 'problem', icon: <ReportProblemOutlinedIcon />, imageSrc: pptNetworkWarm },
+  { title: 'Lösungsidee & Zielgruppe', illustrationKey: 'solution', icon: <LightbulbOutlinedIcon />, imageSrc: pptAbstractShapes },
   { title: 'Nutzen & Aufwand', illustrationKey: 'value', icon: <TrendingUpOutlinedIcon /> },
-  { title: 'Daten & Sicherheit', illustrationKey: 'security', icon: <SecurityOutlinedIcon /> },
-  { title: 'Entscheidung & Review', illustrationKey: 'decision', icon: <FactCheckOutlinedIcon /> }
+  { title: 'Daten & Sicherheit', illustrationKey: 'security', icon: <SecurityOutlinedIcon />, imageSrc: pptNetworkCool },
+  { title: 'Entscheidung & Review', illustrationKey: 'decision', icon: <FactCheckOutlinedIcon />, imageSrc: pptAbstractShapes }
 ];
 
 interface UseCaseWizardDialogProps {
@@ -63,6 +67,7 @@ interface UseCaseWizardDialogProps {
   submitting?: boolean;
   onClose: () => void;
   onSubmit: (values: UseCaseFormData) => void;
+  departments?: { id: string; name: string; active: boolean }[];
 }
 
 function ReviewSummary({ values }: { values: UseCaseFormData }) {
@@ -123,8 +128,10 @@ export function UseCaseWizardDialog({
   initialValues,
   submitting,
   onClose,
-  onSubmit
+  onSubmit,
+  departments = []
 }: UseCaseWizardDialogProps) {
+  const departmentOptions = Object.fromEntries(departments.map((department) => [department.name, department.name]));
   const [activeStep, setActiveStep] = useState(0);
   const {
     control,
@@ -171,6 +178,7 @@ export function UseCaseWizardDialog({
         <IllustrationPanel
           illustrationKey={STEP_DEFINITIONS[activeStep].illustrationKey}
           icon={STEP_DEFINITIONS[activeStep].icon}
+          imageSrc={STEP_DEFINITIONS[activeStep].imageSrc}
         />
 
         <form id="use-case-wizard-form" onSubmit={handleSubmit(onSubmit)}>
@@ -178,7 +186,9 @@ export function UseCaseWizardDialog({
             <Grid container spacing={2}>
               {renderTextField(control, errors, 'title', 'Titel des Use Cases', { required: true, grid: 12 })}
               {renderTextField(control, errors, 'requestor', 'Ansprechpartner / Einreicher', { required: true })}
-              {renderTextField(control, errors, 'department', 'Bereich / Abteilung', { required: true })}
+              {departments.length > 0
+                ? renderSelectField(control, errors, 'department', 'Bereich / Abteilung', departmentOptions)
+                : renderTextField(control, errors, 'department', 'Bereich / Abteilung', { required: true })}
               {renderTextField(control, errors, 'aiChampion', 'AI Champion')}
             </Grid>
           )}

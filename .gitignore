@@ -13,3 +13,7 @@ skills-lock.json
 
 # Machine-local editor settings
 .vscode/
+
+# Local archives and obsolete Supabase tooling for the SQLite deployment
+/backend.zip
+/supabase/

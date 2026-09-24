@@ -5,6 +5,7 @@ import { getIllustration, IllustrationKey } from '../assets/illustrations/manife
 interface IllustrationPanelProps {
   illustrationKey: IllustrationKey;
   icon: ReactElement<SvgIconProps>;
+  imageSrc?: string;
   gradient?: string;
   height?: number;
 }
@@ -14,10 +15,11 @@ interface IllustrationPanelProps {
 export function IllustrationPanel({
   illustrationKey,
   icon,
+  imageSrc,
   gradient = 'linear-gradient(135deg, #4338CA 0%, #6D28D9 100%)',
   height = 120
 }: IllustrationPanelProps) {
-  const imageUrl = getIllustration(illustrationKey);
+  const imageUrl = imageSrc ?? getIllustration(illustrationKey);
 
   return (
     <Box

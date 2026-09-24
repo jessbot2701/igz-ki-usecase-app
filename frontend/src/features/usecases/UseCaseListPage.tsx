@@ -18,6 +18,7 @@ import AddIcon from '@mui/icons-material/Add';
 import SearchIcon from '@mui/icons-material/SearchOutlined';
 import { DataGrid, GridColDef, GridPaginationModel, GridSortModel } from '@mui/x-data-grid';
 import { useCaseApi } from '../../api/useCaseApi';
+import { departmentApi } from '../../api/departmentApi';
 import { StatusChip } from '../../components/StatusChip';
 import { STATUS_LABELS, UseCase, UseCaseStatus } from '../../types';
 import { UseCaseWizardDialog } from './UseCaseWizardDialog';
@@ -46,6 +47,7 @@ export function UseCaseListPage() {
   useEffect(() => {
     setSearch(searchParams.get('search') ?? '');
     setStatus((searchParams.get('status') as UseCaseStatus) ?? '');
+    setCreateOpen(searchParams.get('create') === '1');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
@@ -64,6 +66,10 @@ export function UseCaseListPage() {
   const { data, isLoading } = useQuery({
     queryKey: ['use-cases', queryParams],
     queryFn: () => useCaseApi.search(queryParams)
+  });
+  const { data: departments = [] } = useQuery({
+    queryKey: ['departments'],
+    queryFn: () => departmentApi.list()
   });
 
   const createMutation = useMutation({
@@ -253,6 +259,7 @@ export function UseCaseListPage() {
         title="Neuen Use Case anlegen"
         submitting={createMutation.isPending}
         onClose={() => setCreateOpen(false)}
+        departments={departments}
         onSubmit={(values) => createMutation.mutate(values)}
       />
     </Box>

@@ -23,13 +23,14 @@ import DashboardIcon from '@mui/icons-material/DashboardOutlined';
 import ListAltIcon from '@mui/icons-material/ListAltOutlined';
 import PeopleIcon from '@mui/icons-material/PeopleAltOutlined';
 import TimelineIcon from '@mui/icons-material/TimelineOutlined';
+import SettingsIcon from '@mui/icons-material/SettingsOutlined';
 import SearchIcon from '@mui/icons-material/SearchOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
 import { useAuth } from '../context/AuthContext';
 import { useThemeMode } from '../context/ThemeModeContext';
 import { Role, ROLE_LABELS } from '../types';
-import { roleColors } from '../theme/theme';
+import { BRAND_BLUE, BRAND_GREEN, BRAND_NAVY, roleColors } from '../theme/theme';
 import igzLogo from '../assets/igz-logo.jpg';
 
 const DRAWER_WIDTH = 248;
@@ -41,6 +42,7 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS: { label: string; path: string; icon: JSX.Element; roles: Role[] }[] = [
   { label: 'Benutzer', path: '/admin/users', icon: <PeopleIcon />, roles: [Role.ADMINISTRATOR] },
+  { label: 'Stammdaten', path: '/admin/master-data', icon: <SettingsIcon />, roles: [Role.ADMINISTRATOR] },
   {
     label: 'Aktivitätsprotokoll',
     path: '/admin/activity',
@@ -163,7 +165,7 @@ export function AppLayout() {
             width: DRAWER_WIDTH,
             boxSizing: 'border-box',
             borderRight: 'none',
-            bgcolor: '#09243A',
+            bgcolor: BRAND_NAVY,
             color: '#FFFFFF'
           }
         }}
@@ -203,11 +205,11 @@ export function AppLayout() {
                 '& .MuiListItemIcon-root': { color: '#93ADBE', minWidth: 42 },
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#FFFFFF' },
                 '&.Mui-selected': {
-                  bgcolor: '#1F4E79',
+                  bgcolor: BRAND_BLUE,
                   color: '#fff',
-                  boxShadow: 'inset 3px 0 #64B866',
+                  boxShadow: `inset 3px 0 ${BRAND_GREEN}`,
                   '& .MuiListItemIcon-root': { color: '#fff' },
-                  '&:hover': { bgcolor: '#1F4E79' }
+                  '&:hover': { bgcolor: BRAND_BLUE }
                 }
               }}
             >
@@ -228,11 +230,11 @@ export function AppLayout() {
                 '& .MuiListItemIcon-root': { color: '#93ADBE', minWidth: 42 },
                 '&:hover': { bgcolor: 'rgba(255,255,255,0.07)', color: '#FFFFFF' },
                 '&.Mui-selected': {
-                  bgcolor: '#1F4E79',
+                  bgcolor: BRAND_BLUE,
                   color: '#fff',
-                  boxShadow: 'inset 3px 0 #64B866',
+                  boxShadow: `inset 3px 0 ${BRAND_GREEN}`,
                   '& .MuiListItemIcon-root': { color: '#fff' },
-                  '&:hover': { bgcolor: '#1F4E79' }
+                  '&:hover': { bgcolor: BRAND_BLUE }
                 }
               }}
             >

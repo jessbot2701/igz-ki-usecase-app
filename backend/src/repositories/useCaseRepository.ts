@@ -40,6 +40,20 @@ export interface PortfolioField {
   _count: { evaluations: number };
 }
 
+export interface PortfolioOverviewField {
+  id: string;
+  title: string;
+  department: string;
+  benefits: string | null;
+  estimatedEffect: string | null;
+  implementationEffort: string | null;
+  responsible: string | null;
+  targetDate: string | null;
+  status: string;
+  updatedAt: Date;
+  evaluationRisk: string | null;
+}
+
 // Abstraction over UseCase persistence, kept Prisma-specific here only
 export interface IUseCaseRepository {
   findById(id: string): Promise<UseCase | null>;
@@ -48,6 +62,7 @@ export interface IUseCaseRepository {
   update(id: string, input: UseCaseUpdateInput): Promise<UseCase>;
   countByStatus(): Promise<Record<string, number>>;
   findPortfolioFields(): Promise<PortfolioField[]>;
+  findPortfolioOverview(): Promise<PortfolioOverviewField[]>;
 }
 
 export class PrismaUseCaseRepository implements IUseCaseRepository {
@@ -111,6 +126,35 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
         _count: { select: { evaluations: true } }
       }
     });
+  }
+
+  async findPortfolioOverview(): Promise<PortfolioOverviewField[]> {
+    const useCases = await prisma.useCase.findMany({
+      where: { status: { not: UseCaseStatus.ARCHIVED } },
+      orderBy: { updatedAt: 'desc' },
+      select: {
+        id: true,
+        title: true,
+        department: true,
+        benefits: true,
+        estimatedEffect: true,
+        implementationEffort: true,
+        responsible: true,
+        targetDate: true,
+        status: true,
+        updatedAt: true,
+        evaluations: {
+          orderBy: { createdAt: 'desc' },
+          take: 1,
+          select: { risk: true }
+        }
+      }
+    });
+
+    return useCases.map(({ evaluations, ...useCase }) => ({
+      ...useCase,
+      evaluationRisk: evaluations[0]?.risk ?? null
+    }));
   }
 }
 

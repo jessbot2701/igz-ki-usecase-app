@@ -143,6 +143,14 @@ export interface User {
   createdAt?: string;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface UseCase {
   id: string;
   title: string;
@@ -237,6 +245,44 @@ export interface PortfolioStats {
   missingEvaluations: number;
   overdueTargetDates: number;
   attentionItems: DecisionAttentionItem[];
+  topUseCases: TopUseCaseSummary[];
+  decisionDuration: DecisionDurationSummary;
+  departmentOverview: DepartmentSummary[];
+}
+
+export interface TopUseCaseSummary {
+  id: string;
+  title: string;
+  department: string;
+  expectedBenefit: string | null;
+  effort: string | null;
+  risk: string | null;
+  status: UseCaseStatus;
+  nextAction: string;
+  priority: 'HIGH' | 'MEDIUM' | 'LOW';
+  priorityScore: number;
+  updatedAt: string;
+}
+
+export interface DecisionDurationPoint {
+  month: string;
+  averageDays: number;
+  decidedCount: number;
+}
+
+export interface DecisionDurationSummary {
+  averageDays: number | null;
+  decidedCount: number;
+  targetDays: number;
+  trend: DecisionDurationPoint[];
+}
+
+export interface DepartmentSummary {
+  department: string;
+  total: number;
+  openWorkload: number;
+  overdueTargetDates: number;
+  missingResponsible: number;
 }
 
 export interface DecisionAttentionItem {

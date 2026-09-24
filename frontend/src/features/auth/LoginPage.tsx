@@ -4,6 +4,7 @@ import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/ma
 import { useAuth } from '../../context/AuthContext';
 import { APP_BAR_GRADIENT } from '../../theme/theme';
 import igzLogo from '../../assets/igz-logo.jpg';
+import pptNetworkWarm from '../../assets/illustrations/ppt-network-warm.jpg';
 
 export function LoginPage() {
   const { login, loading } = useAuth();
@@ -33,6 +34,9 @@ export function LoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         background: APP_BAR_GRADIENT,
+        backgroundImage: `linear-gradient(135deg, rgba(9,36,58,0.9), rgba(31,78,121,0.72)), url(${pptNetworkWarm})`,
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
         p: 2
       }}
     >

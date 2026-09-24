@@ -33,6 +33,15 @@ export const updateUserSchema = z.object({
   active: z.boolean().optional()
 });
 
+export const createDepartmentSchema = z.object({
+  name: z.string().min(2).max(120)
+});
+
+export const updateDepartmentSchema = z.object({
+  name: z.string().min(2).max(120).optional(),
+  active: z.boolean().optional()
+});
+
 export const useCaseInputSchema = z.object({
   title: z.string().min(3).max(200),
   requestor: z.string().min(2),
