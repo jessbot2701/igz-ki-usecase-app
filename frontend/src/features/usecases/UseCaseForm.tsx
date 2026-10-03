@@ -13,8 +13,10 @@ import {
   LEVEL_LABELS,
   Reach,
   REACH_LABELS,
-  UseCase
+  UseCase,
+  ChampionOption
 } from '../../types';
+import { ChampionSelect } from './ChampionSelect';
 
 // Mirrors the backend's useCaseInputSchema; kept as a small duplicated schema per
 // architecture decision (two independently deployable packages, no shared package).
@@ -23,7 +25,7 @@ export const useCaseFormSchema = z.object({
   title: z.string().min(3, 'Mindestens 3 Zeichen').max(200),
   requestor: z.string().min(2, 'Pflichtfeld'),
   department: z.string().min(2, 'Pflichtfeld'),
-  aiChampion: z.string().optional(),
+  aiChampionId: z.string().nullable().optional(),
   problemDescription: z.string().min(10, 'Bitte ausführlicher beschreiben'),
   currentProcess: z.string().optional(),
   painPoints: z.string().optional(),
@@ -58,7 +60,7 @@ export function buildDefaultValues(defaultValues?: Partial<UseCase>): UseCaseFor
     title: defaultValues?.title ?? '',
     requestor: defaultValues?.requestor ?? '',
     department: defaultValues?.department ?? '',
-    aiChampion: defaultValues?.aiChampion ?? '',
+    aiChampionId: defaultValues?.aiChampionId ?? undefined,
     problemDescription: defaultValues?.problemDescription ?? '',
     currentProcess: defaultValues?.currentProcess ?? '',
     painPoints: defaultValues?.painPoints ?? '',
@@ -190,9 +192,17 @@ export function renderMultiSelectField(
 // One group per Steckbrief section — drives both the wizard's steps and, via
 // STEP_FIELDS, react-hook-form's per-step `trigger()` validation gate.
 export const STEP_FIELDS: FieldName[][] = [
-  ['title', 'requestor', 'department', 'aiChampion'],
+  ['title', 'requestor', 'department', 'aiChampionId'],
   ['problemDescription', 'currentProcess', 'painPoints', 'frequency'],
-  ['solutionIdea', 'dataSources', 'expectedOutput', 'reach', 'estimatedUsers', 'usageFrequency', 'targetGroup'],
+  [
+    'solutionIdea',
+    'dataSources',
+    'expectedOutput',
+    'reach',
+    'estimatedUsers',
+    'usageFrequency',
+    'targetGroup'
+  ],
   [
     'benefitTypes',
     'estimatedEffect',
@@ -211,9 +221,10 @@ interface UseCaseFormProps {
   formId: string;
   defaultValues?: Partial<UseCase>;
   onSubmit: (values: UseCaseFormData) => void;
+  champions?: ChampionOption[];
 }
 
-export function UseCaseForm({ formId, defaultValues, onSubmit }: UseCaseFormProps) {
+export function UseCaseForm({ formId, defaultValues, onSubmit, champions = [] }: UseCaseFormProps) {
   const {
     control,
     handleSubmit,
@@ -230,18 +241,46 @@ export function UseCaseForm({ formId, defaultValues, onSubmit }: UseCaseFormProp
     <form id={formId} onSubmit={handleSubmit(onSubmit)}>
       <Grid container spacing={2} sx={{ mt: 0.5 }}>
         {/* 1. Basisinformationen */}
-        {renderTextField(control, errors, 'title', 'Titel des Use Cases', { required: true, grid: 12 })}
-        {renderTextField(control, errors, 'requestor', 'Ansprechpartner / Einreicher', { required: true })}
-        {renderTextField(control, errors, 'department', 'Bereich / Abteilung', { required: true })}
-        {renderTextField(control, errors, 'aiChampion', 'AI Champion')}
-
-        {/* 2. Ausgangssituation und Problem */}
-        {renderTextField(control, errors, 'problemDescription', 'Beschreibung des heutigen Ablaufs / Problems', {
+        {renderTextField(control, errors, 'title', 'Titel des Use Cases', {
           required: true,
-          multiline: true,
           grid: 12
         })}
-        {renderTextField(control, errors, 'currentProcess', 'Aktueller Prozess', { multiline: true })}
+        {renderTextField(control, errors, 'requestor', 'Ansprechpartner / Einreicher', {
+          required: true
+        })}
+        {renderTextField(control, errors, 'department', 'Bereich / Abteilung', { required: true })}
+        <Grid item xs={12} sm={6}>
+          <Controller
+            name="aiChampionId"
+            control={control}
+            render={({ field }) => (
+              <ChampionSelect
+                value={field.value}
+                onChange={field.onChange}
+                options={champions}
+                current={defaultValues?.assignedChampion}
+                legacyName={defaultValues?.aiChampion}
+                error={errors.aiChampionId?.message}
+              />
+            )}
+          />
+        </Grid>
+
+        {/* 2. Ausgangssituation und Problem */}
+        {renderTextField(
+          control,
+          errors,
+          'problemDescription',
+          'Beschreibung des heutigen Ablaufs / Problems',
+          {
+            required: true,
+            multiline: true,
+            grid: 12
+          }
+        )}
+        {renderTextField(control, errors, 'currentProcess', 'Aktueller Prozess', {
+          multiline: true
+        })}
         {renderTextField(control, errors, 'painPoints', 'Pain Points', { multiline: true })}
         {renderTextField(control, errors, 'frequency', 'Häufigkeit oder Aufwand des Problems')}
 
@@ -256,7 +295,9 @@ export function UseCaseForm({ formId, defaultValues, onSubmit }: UseCaseFormProp
 
         {/* 4. Zielgruppe und Reichweite */}
         {renderSelectField(control, errors, 'reach', 'Reichweite', REACH_LABELS)}
-        {renderTextField(control, errors, 'estimatedUsers', 'Geschätzte Anzahl Nutzer', { type: 'number' })}
+        {renderTextField(control, errors, 'estimatedUsers', 'Geschätzte Anzahl Nutzer', {
+          type: 'number'
+        })}
         {renderTextField(control, errors, 'usageFrequency', 'Nutzungshäufigkeit')}
         {renderTextField(control, errors, 'targetGroup', 'Weitere Angaben zur Zielgruppe')}
 
@@ -264,13 +305,27 @@ export function UseCaseForm({ formId, defaultValues, onSubmit }: UseCaseFormProp
         {renderMultiSelectField(control, errors, 'benefitTypes', 'Nutzenart', BENEFIT_TYPE_LABELS)}
         {renderSelectField(control, errors, 'estimatedEffect', 'Geschätzter Effekt', LEVEL_LABELS)}
         {renderTextField(control, errors, 'estimatedTimeSavings', 'Geschätzte Zeitersparnis')}
-        {renderTextField(control, errors, 'benefits', 'Nutzen kurz erläutern', { multiline: true, grid: 12 })}
+        {renderTextField(control, errors, 'benefits', 'Nutzen kurz erläutern', {
+          multiline: true,
+          grid: 12
+        })}
 
         {/* 6. Lösungsweg und Aufwand */}
         {renderSelectField(control, errors, 'aiSolutionType', 'KI-Lösung', AI_SOLUTION_TYPE_LABELS)}
         {aiSolutionType === AiSolutionType.SONSTIGES &&
-          renderTextField(control, errors, 'aiSolutionOtherText', 'KI-Lösung: sonstige, bitte benennen')}
-        {renderSelectField(control, errors, 'implementationEffort', 'Umsetzungsaufwand', LEVEL_LABELS)}
+          renderTextField(
+            control,
+            errors,
+            'aiSolutionOtherText',
+            'KI-Lösung: sonstige, bitte benennen'
+          )}
+        {renderSelectField(
+          control,
+          errors,
+          'implementationEffort',
+          'Umsetzungsaufwand',
+          LEVEL_LABELS
+        )}
         {renderTextField(control, errors, 'dependencies', 'Abhängigkeiten / Voraussetzungen')}
 
         {/* 7. Daten, Sicherheit und Compliance */}
@@ -282,10 +337,16 @@ export function UseCaseForm({ formId, defaultValues, onSubmit }: UseCaseFormProp
           DATA_CLASSIFICATION_LABELS,
           12
         )}
-        {renderTextField(control, errors, 'riskAssessment', 'Besondere Risiken oder Anforderungen', {
-          multiline: true,
-          grid: 12
-        })}
+        {renderTextField(
+          control,
+          errors,
+          'riskAssessment',
+          'Besondere Risiken oder Anforderungen',
+          {
+            multiline: true,
+            grid: 12
+          }
+        )}
         {renderTextField(control, errors, 'securityNotes', 'Weitere Sicherheitshinweise', {
           multiline: true,
           grid: 12

@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   Box,
+  Alert,
   Button,
   Card,
   CardContent,
@@ -18,6 +19,7 @@ import {
   TextField,
   Typography
 } from '@mui/material';
+import { Dialog, DialogActions, DialogContent, DialogTitle } from '@mui/material';
 import EditIcon from '@mui/icons-material/EditOutlined';
 import SwapHorizIcon from '@mui/icons-material/SwapHorizOutlined';
 import RateReviewIcon from '@mui/icons-material/RateReviewOutlined';
@@ -30,7 +32,7 @@ import HistoryOutlinedIcon from '@mui/icons-material/HistoryOutlined';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import { useAuth } from '../../context/AuthContext';
 import { useNotification } from '../../context/NotificationContext';
-import { useCaseApi } from '../../api/useCaseApi';
+import { useCaseApi, UseCaseFormValues } from '../../api/useCaseApi';
 import { departmentApi } from '../../api/departmentApi';
 import { apiClient } from '../../api/client';
 import {
@@ -43,8 +45,11 @@ import {
   UseCaseStatus
 } from '../../types';
 import { StatusChip } from '../../components/StatusChip';
+import { ClarificationChip } from '../../components/ClarificationChip';
+import { championApi } from '../../api/championApi';
 import { UseCaseWizardDialog } from './UseCaseWizardDialog';
-import { UseCaseFormData } from './UseCaseForm';
+import { IdeaInput } from '../../api/authApi';
+import { IdeaFields, emptyIdea } from '../ideas/IdeaFields';
 import { StatusChangeDialog } from './StatusChangeDialog';
 import { EvaluationDialog } from './EvaluationDialog';
 
@@ -82,8 +87,9 @@ function DetailField({
   );
 }
 
-export function UseCaseDetailPage() {
+export function UseCaseDetailPage({ employeeView = false }: { employeeView?: boolean }) {
   const { id } = useParams<{ id: string }>();
+  const location = useLocation();
   const { user } = useAuth();
   const { notify } = useNotification();
   const queryClient = useQueryClient();
@@ -94,6 +100,7 @@ export function UseCaseDetailPage() {
   const [evalOpen, setEvalOpen] = useState(false);
   const [commentText, setCommentText] = useState('');
   const [aiSummary, setAiSummary] = useState<string | null>(null);
+  const [ideaDraft, setIdeaDraft] = useState<IdeaInput>(emptyIdea);
 
   const useCaseQuery = useQuery({
     queryKey: ['use-case', id],
@@ -121,14 +128,20 @@ export function UseCaseDetailPage() {
     enabled: Boolean(id)
   });
 
-  const invalidateUseCase = () => queryClient.invalidateQueries({ queryKey: ['use-case', id] });
+  const invalidateUseCase = () => {
+    queryClient.invalidateQueries({ queryKey: ['use-case', id] });
+    queryClient.invalidateQueries({ queryKey: ['my-ideas'] });
+    queryClient.invalidateQueries({ queryKey: ['use-cases'] });
+    queryClient.invalidateQueries({ queryKey: ['dashboard-portfolio'] });
+  };
 
   const updateMutation = useMutation({
-    mutationFn: (values: UseCaseFormData) => useCaseApi.update(id!, values),
+    mutationFn: (values: Partial<UseCaseFormValues>) => useCaseApi.update(id!, values),
     onSuccess: () => {
       setEditOpen(false);
       notify('Änderungen wurden gespeichert.', 'success');
       invalidateUseCase();
+      queryClient.invalidateQueries({ queryKey: ['my-ideas'] });
     }
   });
   const statusMutation = useMutation({
@@ -139,6 +152,7 @@ export function UseCaseDetailPage() {
       notify('Status wurde geändert.', 'success');
       invalidateUseCase();
       queryClient.invalidateQueries({ queryKey: ['use-case', id, 'history'] });
+      queryClient.invalidateQueries({ queryKey: ['my-ideas'] });
     }
   });
   const commentMutation = useMutation({
@@ -146,7 +160,7 @@ export function UseCaseDetailPage() {
     onSuccess: () => {
       setCommentText('');
       notify('Kommentar wurde hinzugefügt.', 'success');
-      queryClient.invalidateQueries({ queryKey: ['use-case', id, 'comments'] });
+      invalidateUseCase();
     }
   });
   const evaluationMutation = useMutation({
@@ -177,13 +191,69 @@ export function UseCaseDetailPage() {
     queryFn: () => departmentApi.list()
   });
   const canEvaluate = user && (user.role === Role.AI_CHAMPION || user.role === Role.AI_CORE_TEAM);
+  const championsQuery = useQuery({
+    queryKey: ['champions'],
+    queryFn: championApi.list,
+    enabled: !employeeView && editOpen
+  });
 
+  if (useCaseQuery.isError) {
+    return (
+      <Alert severity="error">
+        Die Idee konnte nicht geladen werden oder Sie haben keinen Zugriff darauf.
+      </Alert>
+    );
+  }
   if (!useCase) {
     return <Typography>Lädt…</Typography>;
   }
 
   return (
     <Box>
+      {employeeView ? (
+        <Button component={RouterLink} to="/meine-ideen" sx={{ mb: 2 }}>
+          Zurück zu meinen Ideen
+        </Button>
+      ) : null}
+      {employeeView &&
+      useCase.status === UseCaseStatus.SUBMITTED &&
+      (location.state as { submitted?: boolean } | null)?.submitted ? (
+        <Alert severity="success" sx={{ mb: 2 }}>
+          {(location.state as { demo?: boolean } | null)?.demo
+            ? 'Ihre Demo-Idee wurde eingereicht und kann jetzt vom AI-Team geprüft werden.'
+            : 'Ihre E-Mail-Adresse ist bestätigt. Ihre Idee wurde eingereicht und kann jetzt vom AI-Team geprüft werden.'}
+        </Alert>
+      ) : null}
+      {useCase.status === UseCaseStatus.NEED_MORE_INFO ? (
+        <Alert
+          severity={useCase.clarificationAnsweredAt ? 'success' : 'warning'}
+          sx={{ mb: 2 }}
+          action={
+            <Button color="inherit" onClick={() => setTab(2)}>
+              {employeeView && !useCase.clarificationAnsweredAt
+                ? 'Antworten'
+                : 'Kommentare ansehen'}
+            </Button>
+          }
+        >
+          <Typography fontWeight={600}>
+            {useCase.clarificationAnsweredAt
+              ? 'Antwort des Einreichers eingegangen.'
+              : 'Antwort des Einreichers ausstehend.'}
+          </Typography>
+          {
+            historyQuery.data?.find((entry) => entry.toStatus === UseCaseStatus.NEED_MORE_INFO)
+              ?.note
+          }
+          <Typography variant="body2">
+            {employeeView
+              ? 'Antworten Sie unter „Kommentare“ und ergänzen Sie bei Bedarf Ihre Angaben. Reichen Sie die Idee anschließend erneut ein.'
+              : useCase.clarificationAnsweredAt
+                ? 'Bitte prüfen Sie die Antwort und klären Sie den nächsten Schritt mit dem Einreicher.'
+                : 'Der Einreicher wurde um weitere Informationen gebeten.'}
+          </Typography>
+        </Alert>
+      ) : null}
       <Box
         sx={{
           position: 'relative',
@@ -215,7 +285,7 @@ export function UseCaseDetailPage() {
               variant="overline"
               sx={{ color: 'primary.light', fontWeight: 800, letterSpacing: '0.12em' }}
             >
-              Use Case Detail
+              {employeeView ? 'Meine Idee' : 'Use Case Detail'}
             </Typography>
             <Typography variant="h4">{useCase.title}</Typography>
             <Stack
@@ -227,24 +297,54 @@ export function UseCaseDetailPage() {
               sx={{ mt: 1.5 }}
             >
               <StatusChip status={useCase.status} />
+              <ClarificationChip useCase={useCase} />
+              <Chip
+                label={`AI Champion: ${useCase.assignedChampion?.name ?? 'Noch nicht zugeordnet'}`}
+                variant="outlined"
+                size="small"
+              />
               <Chip label={useCase.department} variant="outlined" size="small" />
               <Chip label={`Einreicher: ${useCase.requestor}`} variant="outlined" size="small" />
             </Stack>
           </Box>
           <Stack direction="row" spacing={1} useFlexGap flexWrap="wrap">
-            <Button startIcon={<AutoAwesomeIcon />} onClick={() => summaryMutation.mutate()}>
-              KI-Zusammenfassung
-            </Button>
-            <Button startIcon={<EditIcon />} onClick={() => setEditOpen(true)}>
-              Bearbeiten
-            </Button>
+            {!employeeView ? (
+              <Button startIcon={<AutoAwesomeIcon />} onClick={() => summaryMutation.mutate()}>
+                KI-Zusammenfassung
+              </Button>
+            ) : null}
+            {useCase.canEdit ? (
+              <Button
+                startIcon={<EditIcon />}
+                onClick={() => {
+                  setIdeaDraft({
+                    title: useCase.title,
+                    department: useCase.department,
+                    problemDescription: useCase.problemDescription,
+                    solutionIdea: useCase.solutionIdea
+                  });
+                  setEditOpen(true);
+                }}
+              >
+                Bearbeiten
+              </Button>
+            ) : null}
             {(useCase.allowedNextStatuses?.length ?? 0) > 0 && (
               <Button
                 variant="contained"
                 startIcon={<SwapHorizIcon />}
-                onClick={() => setStatusOpen(true)}
+                disabled={statusMutation.isPending}
+                onClick={() =>
+                  employeeView
+                    ? statusMutation.mutate({ toStatus: UseCaseStatus.SUBMITTED })
+                    : setStatusOpen(true)
+                }
               >
-                Status ändern
+                {employeeView
+                  ? useCase.status === UseCaseStatus.DRAFT
+                    ? 'Idee einreichen'
+                    : 'Erneut einreichen'
+                  : 'Status ändern'}
               </Button>
             )}
           </Stack>
@@ -383,7 +483,7 @@ export function UseCaseDetailPage() {
             />
             <Button
               variant="contained"
-              disabled={!commentText.trim()}
+              disabled={!commentText.trim() || commentMutation.isPending}
               onClick={() => commentMutation.mutate(commentText)}
             >
               Senden
@@ -445,10 +545,10 @@ export function UseCaseDetailPage() {
                 divider
                 secondaryAction={
                   <IconButton
-                    component="a"
-                    href={useCaseApi.downloadAttachmentUrl(a.id)}
-                    target="_blank"
-                    rel="noopener"
+                    aria-label={`${a.fileName} herunterladen`}
+                    onClick={() => {
+                      void useCaseApi.downloadAttachment(a.id, a.fileName).catch(() => undefined);
+                    }}
                   >
                     <DownloadIcon />
                   </IconButton>
@@ -465,15 +565,56 @@ export function UseCaseDetailPage() {
         </Card>
       )}
 
-      <UseCaseWizardDialog
-        open={editOpen}
-        title="Use Case bearbeiten"
-        initialValues={useCase}
-        submitting={updateMutation.isPending}
-        departments={departments}
-        onClose={() => setEditOpen(false)}
-        onSubmit={(values) => updateMutation.mutate(values)}
-      />
+      {employeeView ? (
+        <Dialog
+          open={editOpen}
+          onClose={() => {
+            if (!updateMutation.isPending) setEditOpen(false);
+          }}
+          fullWidth
+          maxWidth="sm"
+        >
+          <Box
+            component="form"
+            onSubmit={(event) => {
+              event.preventDefault();
+              updateMutation.mutate(ideaDraft);
+            }}
+          >
+            <DialogTitle>Idee ergänzen</DialogTitle>
+            <DialogContent>
+              <Box sx={{ pt: 1 }}>
+                <IdeaFields
+                  value={ideaDraft}
+                  onChange={setIdeaDraft}
+                  disabled={updateMutation.isPending}
+                />
+              </Box>
+            </DialogContent>
+            <DialogActions>
+              <Button onClick={() => setEditOpen(false)} disabled={updateMutation.isPending}>
+                Abbrechen
+              </Button>
+              <Button type="submit" variant="contained" disabled={updateMutation.isPending}>
+                Änderungen speichern
+              </Button>
+            </DialogActions>
+          </Box>
+        </Dialog>
+      ) : (
+        <UseCaseWizardDialog
+          open={editOpen}
+          title="Use Case bearbeiten"
+          initialValues={useCase}
+          submitting={updateMutation.isPending}
+          departments={departments}
+          champions={championsQuery.data}
+          championsLoading={championsQuery.isPending}
+          championsUnavailable={championsQuery.isError}
+          onClose={() => setEditOpen(false)}
+          onSubmit={(values) => updateMutation.mutate(values)}
+        />
+      )}
       <StatusChangeDialog
         open={statusOpen}
         allowedNextStatuses={useCase.allowedNextStatuses ?? []}

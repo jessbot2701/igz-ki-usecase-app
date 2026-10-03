@@ -11,6 +11,8 @@ export async function createTestUser(role: Role, email: string, department = 'IT
 }
 
 export async function resetDatabase(): Promise<void> {
+  await prisma.emailNotification.deleteMany();
+  await prisma.emailLoginToken.deleteMany();
   await prisma.attachment.deleteMany();
   await prisma.evaluation.deleteMany();
   await prisma.comment.deleteMany();

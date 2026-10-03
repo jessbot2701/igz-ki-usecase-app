@@ -59,7 +59,11 @@ export type StrategicRelevance = (typeof StrategicRelevance)[keyof typeof Strate
 // Generic niedrig/mittel/hoch scale (Steckbrief template: Sec. 5 Effekt, Sec. 6 Umsetzungsaufwand)
 export const Level = { NIEDRIG: 'NIEDRIG', MITTEL: 'MITTEL', HOCH: 'HOCH' } as const;
 export type Level = (typeof Level)[keyof typeof Level];
-export const LEVEL_LABELS: Record<Level, string> = { NIEDRIG: 'Niedrig', MITTEL: 'Mittel', HOCH: 'Hoch' };
+export const LEVEL_LABELS: Record<Level, string> = {
+  NIEDRIG: 'Niedrig',
+  MITTEL: 'Mittel',
+  HOCH: 'Hoch'
+};
 
 // Steckbrief template Sec. 4 "Zielgruppe und Reichweite"
 export const Reach = {
@@ -157,6 +161,11 @@ export interface UseCase {
   requestor: string;
   department: string;
   aiChampion?: string | null;
+  aiChampionId?: string | null;
+  assignedChampion?: (ChampionOption & { active: boolean; role: Role }) | null;
+  clarificationRequestedAt?: string | null;
+  clarificationAnsweredAt?: string | null;
+  hasUnansweredQuestion?: boolean;
   problemDescription: string;
   currentProcess?: string | null;
   painPoints?: string | null;
@@ -188,6 +197,7 @@ export interface UseCase {
   createdAt: string;
   updatedAt: string;
   allowedNextStatuses?: UseCaseStatus[];
+  canEdit?: boolean;
 }
 
 export interface PagedResult<T> {
@@ -195,6 +205,13 @@ export interface PagedResult<T> {
   total: number;
   page: number;
   pageSize: number;
+}
+
+export interface ChampionOption {
+  email?: string;
+  id: string;
+  name: string;
+  department: string | null;
 }
 
 export interface StatusHistoryEntry {
@@ -242,6 +259,7 @@ export interface PortfolioStats {
   byStrategicRelevance: Record<string, number>;
   openDecisions: number;
   needMoreInfo: number;
+  unansweredQuestions: number;
   missingEvaluations: number;
   overdueTargetDates: number;
   attentionItems: DecisionAttentionItem[];
@@ -292,7 +310,9 @@ export interface DecisionAttentionItem {
   responsible: string | null;
   targetDate: string | null;
   status: UseCaseStatus;
-  reasons: Array<'NEED_MORE_INFO' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'>;
+  reasons: Array<
+    'NEED_MORE_INFO' | 'ANSWER_RECEIVED' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'
+  >;
 }
 
 export interface ActivityFeedEntry {

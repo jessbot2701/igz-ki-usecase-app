@@ -8,6 +8,7 @@ export interface UseCaseSearchParams {
   department?: string;
   requestor?: string;
   createdById?: string;
+  unansweredOnly?: boolean;
   page: number;
   pageSize: number;
   sortBy: 'title' | 'createdAt' | 'updatedAt' | 'status' | 'department';
@@ -38,6 +39,7 @@ export interface PortfolioField {
   targetDate: string | null;
   status: string;
   _count: { evaluations: number };
+  clarificationAnsweredAt: Date | null;
 }
 
 export interface PortfolioOverviewField {
@@ -52,27 +54,36 @@ export interface PortfolioOverviewField {
   status: string;
   updatedAt: Date;
   evaluationRisk: string | null;
+  clarificationAnsweredAt: Date | null;
 }
+
+const championInclude = {
+  assignedChampion: { select: { id: true, name: true, department: true, active: true, role: true } }
+} satisfies Prisma.UseCaseInclude;
+export type UseCaseWithChampion = Prisma.UseCaseGetPayload<{ include: typeof championInclude }>;
 
 // Abstraction over UseCase persistence, kept Prisma-specific here only
 export interface IUseCaseRepository {
-  findById(id: string): Promise<UseCase | null>;
-  search(params: UseCaseSearchParams): Promise<PagedResult<UseCase>>;
+  findById(id: string): Promise<UseCaseWithChampion | null>;
+  search(params: UseCaseSearchParams): Promise<PagedResult<UseCaseWithChampion>>;
   create(input: UseCaseCreateInput): Promise<UseCase>;
   update(id: string, input: UseCaseUpdateInput): Promise<UseCase>;
-  countByStatus(): Promise<Record<string, number>>;
+  countByStatus(createdById?: string): Promise<Record<string, number>>;
   findPortfolioFields(): Promise<PortfolioField[]>;
   findPortfolioOverview(): Promise<PortfolioOverviewField[]>;
 }
 
 export class PrismaUseCaseRepository implements IUseCaseRepository {
-  findById(id: string): Promise<UseCase | null> {
-    return prisma.useCase.findUnique({ where: { id } });
+  findById(id: string): Promise<UseCaseWithChampion | null> {
+    return prisma.useCase.findUnique({ where: { id }, include: championInclude });
   }
 
-  async search(params: UseCaseSearchParams): Promise<PagedResult<UseCase>> {
+  async search(params: UseCaseSearchParams): Promise<PagedResult<UseCaseWithChampion>> {
     const where: Prisma.UseCaseWhereInput = {
       ...(params.status ? { status: params.status } : {}),
+      ...(params.unansweredOnly
+        ? { AND: [{ status: UseCaseStatus.NEED_MORE_INFO, clarificationAnsweredAt: null }] }
+        : {}),
       ...(params.department ? { department: { contains: params.department } } : {}),
       ...(params.requestor ? { requestor: { contains: params.requestor } } : {}),
       ...(params.createdById ? { createdById: params.createdById } : {}),
@@ -92,7 +103,8 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
         where,
         orderBy: { [params.sortBy]: params.sortDir },
         skip: (params.page - 1) * params.pageSize,
-        take: params.pageSize
+        take: params.pageSize,
+        include: championInclude
       }),
       prisma.useCase.count({ where })
     ]);
@@ -108,8 +120,12 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
     return prisma.useCase.update({ where: { id }, data: input });
   }
 
-  async countByStatus(): Promise<Record<string, number>> {
-    const grouped = await prisma.useCase.groupBy({ by: ['status'], _count: { status: true } });
+  async countByStatus(createdById?: string): Promise<Record<string, number>> {
+    const grouped = await prisma.useCase.groupBy({
+      by: ['status'],
+      where: { createdById },
+      _count: { status: true }
+    });
     return Object.fromEntries(grouped.map((g) => [g.status, g._count.status]));
   }
 
@@ -123,7 +139,8 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
         responsible: true,
         targetDate: true,
         status: true,
-        _count: { select: { evaluations: true } }
+        _count: { select: { evaluations: true } },
+        clarificationAnsweredAt: true
       }
     });
   }
@@ -143,6 +160,7 @@ export class PrismaUseCaseRepository implements IUseCaseRepository {
         targetDate: true,
         status: true,
         updatedAt: true,
+        clarificationAnsweredAt: true,
         evaluations: {
           orderBy: { createdAt: 'desc' },
           take: 1,

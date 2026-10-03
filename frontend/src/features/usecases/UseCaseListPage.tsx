@@ -7,6 +7,8 @@ import {
   Card,
   CardActionArea,
   CardContent,
+  Checkbox,
+  FormControlLabel,
   InputAdornment,
   MenuItem,
   Paper,
@@ -20,6 +22,8 @@ import { DataGrid, GridColDef, GridPaginationModel, GridSortModel } from '@mui/x
 import { useCaseApi } from '../../api/useCaseApi';
 import { departmentApi } from '../../api/departmentApi';
 import { StatusChip } from '../../components/StatusChip';
+import { ClarificationChip } from '../../components/ClarificationChip';
+import { championApi } from '../../api/championApi';
 import { STATUS_LABELS, UseCase, UseCaseStatus } from '../../types';
 import { UseCaseWizardDialog } from './UseCaseWizardDialog';
 import { UseCaseFormData } from './UseCaseForm';
@@ -41,6 +45,7 @@ export function UseCaseListPage() {
   });
   const [sortModel, setSortModel] = useState<GridSortModel>([{ field: 'updatedAt', sort: 'desc' }]);
   const [createOpen, setCreateOpen] = useState(false);
+  const unansweredOnly = searchParams.get('unanswered') === 'true';
 
   // Keeps the grid in sync when navigating here (e.g. from the topbar search or dashboard
   // KPI cards) while already on this route, where React Router does not remount the page.
@@ -54,13 +59,14 @@ export function UseCaseListPage() {
   const queryParams = useMemo(
     () => ({
       search: search || undefined,
-      status: status || undefined,
+      status: unansweredOnly ? undefined : status || undefined,
+      unansweredOnly: unansweredOnly || undefined,
       page: paginationModel.page + 1,
       pageSize: paginationModel.pageSize,
       sortBy: sortModel[0]?.field ?? 'updatedAt',
       sortDir: (sortModel[0]?.sort ?? 'desc') as 'asc' | 'desc'
     }),
-    [search, status, paginationModel, sortModel]
+    [search, status, unansweredOnly, paginationModel, sortModel]
   );
 
   const { data, isLoading } = useQuery({
@@ -82,10 +88,33 @@ export function UseCaseListPage() {
     }
   });
 
+  const championsQuery = useQuery({
+    queryKey: ['champions'],
+    queryFn: championApi.list,
+    enabled: createOpen
+  });
+
   const columns: GridColDef<UseCase>[] = [
     { field: 'title', headerName: 'Titel', flex: 1.4, minWidth: 200 },
     { field: 'department', headerName: 'Bereich', flex: 0.8, minWidth: 120 },
-    { field: 'requestor', headerName: 'Einreicher', flex: 0.8, minWidth: 140 },
+    { field: 'requestor', headerName: 'Einreicher', flex: 0.8, minWidth: 140, sortable: false },
+    {
+      field: 'assignedChampion',
+      headerName: 'AI Champion',
+      minWidth: 160,
+      flex: 0.8,
+      sortable: false,
+      valueGetter: (_value, row) =>
+        row.assignedChampion?.name ??
+        (row.aiChampion ? `${row.aiChampion} (Altangabe)` : 'Noch nicht zugeordnet')
+    },
+    {
+      field: 'clarification',
+      headerName: 'Rückfrage',
+      minWidth: 190,
+      sortable: false,
+      renderCell: ({ row }) => <ClarificationChip useCase={row} />
+    },
     {
       field: 'status',
       headerName: 'Status',
@@ -131,13 +160,14 @@ export function UseCaseListPage() {
       </Stack>
 
       <Paper elevation={0} sx={{ p: 2, mb: 2, border: 1, borderColor: 'divider', borderRadius: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} useFlexGap flexWrap="wrap">
           <TextField
             placeholder="Titel, Bereich oder Einreicher suchen"
             size="small"
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
+              setPaginationModel((model) => ({ ...model, page: 0 }));
               setSearchParams((p) => {
                 p.set('search', e.target.value);
                 return p;
@@ -156,8 +186,18 @@ export function UseCaseListPage() {
             select
             label="Status"
             size="small"
-            value={status}
-            onChange={(e) => setStatus(e.target.value as UseCaseStatus | '')}
+            value={unansweredOnly ? '' : status}
+            disabled={unansweredOnly}
+            onChange={(e) => {
+              setStatus(e.target.value as UseCaseStatus | '');
+              setPaginationModel((model) => ({ ...model, page: 0 }));
+              setSearchParams((previous) => {
+                const next = new URLSearchParams(previous);
+                if (e.target.value) next.set('status', e.target.value);
+                else next.delete('status');
+                return next;
+              });
+            }}
             sx={{ minWidth: 200 }}
           >
             <MenuItem value="">Alle</MenuItem>
@@ -167,6 +207,25 @@ export function UseCaseListPage() {
               </MenuItem>
             ))}
           </TextField>
+          <FormControlLabel
+            label="Nur unbeantwortete Rückfragen"
+            control={
+              <Checkbox
+                checked={unansweredOnly}
+                onChange={(_event, checked) => {
+                  setPaginationModel((model) => ({ ...model, page: 0 }));
+                  setSearchParams((previous) => {
+                    const next = new URLSearchParams(previous);
+                    if (checked) {
+                      next.set('unanswered', 'true');
+                      next.delete('status');
+                    } else next.delete('unanswered');
+                    return next;
+                  });
+                }}
+              />
+            }
+          />
         </Stack>
       </Paper>
 
@@ -214,6 +273,14 @@ export function UseCaseListPage() {
                   </Typography>
                   <StatusChip status={useCase.status} />
                 </Stack>
+                <ClarificationChip useCase={useCase} />
+                <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                  AI Champion:{' '}
+                  {useCase.assignedChampion?.name ??
+                    (useCase.aiChampion
+                      ? `${useCase.aiChampion} (Altangabe)`
+                      : 'Noch nicht zugeordnet')}
+                </Typography>
                 <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
                   {useCase.department} · {useCase.requestor}
                 </Typography>
@@ -260,6 +327,9 @@ export function UseCaseListPage() {
         submitting={createMutation.isPending}
         onClose={() => setCreateOpen(false)}
         departments={departments}
+        champions={championsQuery.data}
+        championsLoading={championsQuery.isPending}
+        championsUnavailable={championsQuery.isError}
         onSubmit={(values) => createMutation.mutate(values)}
       />
     </Box>

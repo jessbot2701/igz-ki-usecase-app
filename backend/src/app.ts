@@ -11,13 +11,19 @@ import { dashboardRouter } from './routes/dashboardRoutes';
 import { adminRouter } from './routes/adminRoutes';
 import { attachmentRouter } from './routes/attachmentRoutes';
 import { departmentRouter } from './routes/departmentRoutes';
+import { championRouter } from './routes/championRoutes';
 
 export function createApp(): Express {
   const app = express();
+  if (env.trustProxy)
+    app.set(
+      'trust proxy',
+      env.trustProxy.split(',').map((value) => value.trim())
+    );
 
   app.use(cors({ origin: env.corsOrigin }));
   app.use(express.json());
-  app.use(pinoHttp({ logger }));
+  app.use(pinoHttp({ logger, redact: ['req.headers.authorization', 'req.headers.cookie'] }));
 
   app.get('/api/v1/health', (_req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
@@ -26,6 +32,7 @@ export function createApp(): Express {
   app.use('/api/v1/auth', authRouter);
   app.use('/api/v1/users', userRouter);
   app.use('/api/v1/departments', departmentRouter);
+  app.use('/api/v1/champions', championRouter);
   app.use('/api/v1/use-cases', useCaseRouter);
   app.use('/api/v1/dashboard', dashboardRouter);
   app.use('/api/v1/admin', adminRouter);

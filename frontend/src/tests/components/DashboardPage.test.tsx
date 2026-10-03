@@ -34,6 +34,7 @@ vi.mock('../../api/useCaseApi', () => ({
         byStrategicRelevance: { QUICK_WIN: 1 },
         openDecisions: 1,
         needMoreInfo: 1,
+        unansweredQuestions: 1,
         missingEvaluations: 1,
         overdueTargetDates: 1,
         attentionItems: [

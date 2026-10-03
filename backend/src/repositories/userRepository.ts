@@ -1,4 +1,4 @@
-import { User } from '@prisma/client';
+import { Prisma, User } from '@prisma/client';
 import { Role } from '../domain/enums';
 import { prisma } from '../config/prisma';
 
@@ -8,6 +8,17 @@ export interface CreateUserInput {
   passwordHash: string;
   role: Role;
   department?: string;
+}
+
+// Preserve access for older accounts whose email was saved with mixed casing.
+export async function findUserByEmail(
+  db: Prisma.TransactionClient,
+  email: string
+): Promise<User | null> {
+  const matches = await db.$queryRaw<
+    Array<{ id: string }>
+  >`SELECT id FROM users WHERE email = ${email} COLLATE NOCASE LIMIT 1`;
+  return matches[0] ? db.user.findUnique({ where: { id: matches[0].id } }) : null;
 }
 
 export interface UpdateUserInput {
@@ -32,7 +43,7 @@ export class PrismaUserRepository implements IUserRepository {
   }
 
   findByEmail(email: string): Promise<User | null> {
-    return prisma.user.findUnique({ where: { email } });
+    return findUserByEmail(prisma, email);
   }
 
   findAll(): Promise<User[]> {

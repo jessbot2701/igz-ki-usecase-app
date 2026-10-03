@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Button,
   Dialog,
@@ -28,6 +28,12 @@ export function StatusChangeDialog({
 }: StatusChangeDialogProps) {
   const [toStatus, setToStatus] = useState<UseCaseStatus | ''>('');
   const [note, setNote] = useState('');
+  useEffect(() => {
+    if (open) {
+      setToStatus('');
+      setNote('');
+    }
+  }, [open]);
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>

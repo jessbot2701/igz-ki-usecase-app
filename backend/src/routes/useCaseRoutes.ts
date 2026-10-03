@@ -20,10 +20,21 @@ import { statusHistoryRepository } from '../repositories/statusHistoryRepository
 import { aiService } from '../ai/aiServiceFactory';
 import { upload } from '../middleware/upload';
 import { ApiError } from '../utils/ApiError';
+import { canEditFields } from '../domain/workflowRules';
 
 export const useCaseRouter = Router();
 
 useCaseRouter.use(authenticate);
+
+// Protect every nested resource before reading data or accepting an upload.
+useCaseRouter.use(
+  '/:id',
+  asyncHandler(async (req, _res, next) => {
+    const useCase = await useCaseService.getById(req.params.id);
+    useCaseService.assertViewable(useCase, { id: req.user!.sub, role: req.user!.role });
+    next();
+  })
+);
 
 useCaseRouter.get(
   '/',
@@ -33,6 +44,7 @@ useCaseRouter.get(
       search?: string;
       status?: UseCaseStatus;
       department?: string;
+      unansweredOnly?: boolean;
       requestor?: string;
       page: number;
       pageSize: number;
@@ -49,7 +61,10 @@ useCaseRouter.post(
   '/',
   validateBody(useCaseInputSchema),
   asyncHandler(async (req, res) => {
-    const useCase = await useCaseService.create(req.body, { id: req.user!.sub, role: req.user!.role });
+    const useCase = await useCaseService.create(req.body, {
+      id: req.user!.sub,
+      role: req.user!.role
+    });
     res.status(201).json(useCase);
   })
 );
@@ -61,7 +76,16 @@ useCaseRouter.get(
     useCaseService.assertViewable(useCase, { id: req.user!.sub, role: req.user!.role });
     res.json({
       ...useCase,
-      allowedNextStatuses: workflowService.allowedNextStatuses(useCase.status as UseCaseStatus)
+      allowedNextStatuses: workflowService.allowedNextStatuses(
+        useCase.status as UseCaseStatus,
+        { id: req.user!.sub, role: req.user!.role },
+        useCase.createdById
+      ),
+      canEdit: canEditFields(
+        req.user!.role,
+        req.user!.sub === useCase.createdById,
+        useCase.status as UseCaseStatus
+      )
     });
   })
 );

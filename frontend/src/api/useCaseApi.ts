@@ -16,6 +16,7 @@ export interface UseCaseSearchParams {
   search?: string;
   status?: UseCaseStatus;
   department?: string;
+  unansweredOnly?: boolean;
   requestor?: string;
   page?: number;
   pageSize?: number;
@@ -25,28 +26,45 @@ export interface UseCaseSearchParams {
 
 export type UseCaseFormValues = Omit<
   UseCase,
-  'id' | 'status' | 'createdById' | 'lastModifiedById' | 'createdAt' | 'updatedAt' | 'allowedNextStatuses'
+  | 'id'
+  | 'status'
+  | 'createdById'
+  | 'lastModifiedById'
+  | 'createdAt'
+  | 'updatedAt'
+  | 'allowedNextStatuses'
+  | 'canEdit'
+  | 'assignedChampion'
+  | 'aiChampion'
+  | 'clarificationRequestedAt'
+  | 'clarificationAnsweredAt'
+  | 'hasUnansweredQuestion'
 >;
 
 export const useCaseApi = {
   search: (params: UseCaseSearchParams) =>
     apiClient.get<PagedResult<UseCase>>('/use-cases', { params }).then((r) => r.data),
   get: (id: string) => apiClient.get<UseCase>(`/use-cases/${id}`).then((r) => r.data),
-  create: (input: UseCaseFormValues) => apiClient.post<UseCase>('/use-cases', input).then((r) => r.data),
+  create: (input: UseCaseFormValues) =>
+    apiClient.post<UseCase>('/use-cases', input).then((r) => r.data),
   update: (id: string, input: Partial<UseCaseFormValues>) =>
     apiClient.patch<UseCase>(`/use-cases/${id}`, input).then((r) => r.data),
   changeStatus: (id: string, toStatus: UseCaseStatus, note?: string) =>
     apiClient.post<UseCase>(`/use-cases/${id}/status`, { toStatus, note }).then((r) => r.data),
   history: (id: string) =>
     apiClient.get<StatusHistoryEntry[]>(`/use-cases/${id}/history`).then((r) => r.data),
-  comments: (id: string) => apiClient.get<CommentEntry[]>(`/use-cases/${id}/comments`).then((r) => r.data),
+  comments: (id: string) =>
+    apiClient.get<CommentEntry[]>(`/use-cases/${id}/comments`).then((r) => r.data),
   addComment: (id: string, text: string) =>
     apiClient.post<CommentEntry>(`/use-cases/${id}/comments`, { text }).then((r) => r.data),
   evaluations: (id: string) =>
     apiClient.get<EvaluationEntry[]>(`/use-cases/${id}/evaluations`).then((r) => r.data),
   addEvaluation: (
     id: string,
-    input: Pick<EvaluationEntry, 'businessValue' | 'feasibility' | 'risk' | 'strategicRelevance' | 'note'>
+    input: Pick<
+      EvaluationEntry,
+      'businessValue' | 'feasibility' | 'risk' | 'strategicRelevance' | 'note'
+    >
   ) => apiClient.post<EvaluationEntry>(`/use-cases/${id}/evaluations`, input).then((r) => r.data),
   attachments: (id: string) =>
     apiClient.get<AttachmentEntry[]>(`/use-cases/${id}/attachments`).then((r) => r.data),
@@ -59,7 +77,17 @@ export const useCaseApi = {
       })
       .then((r) => r.data);
   },
-  downloadAttachmentUrl: (attachmentId: string) => `/api/v1/attachments/${attachmentId}/download`
+  downloadAttachment: async (attachmentId: string, fileName: string) => {
+    const response = await apiClient.get<Blob>(`/attachments/${attachmentId}/download`, {
+      responseType: 'blob'
+    });
+    const url = URL.createObjectURL(response.data);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
 };
 
 export const dashboardApi = {

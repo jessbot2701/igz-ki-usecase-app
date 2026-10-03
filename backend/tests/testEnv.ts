@@ -2,5 +2,6 @@
 process.env.DATABASE_URL = 'file:./test.db';
 process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
+process.env.DEMO_MODE = 'false';
 process.env.AI_PROVIDER = 'mock';
 process.env.UPLOAD_DIR = 'tests/tmp-uploads';

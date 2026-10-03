@@ -1,5 +1,37 @@
 # Architektur — IGZ AI Use Case Portal
 
+## Mitarbeiterzugang per E-Mail
+
+Die Anwendung hat einen öffentlichen Einstieg (`/`, `/idee-melden`, `/zugang`) und zwei
+authentifizierte Oberflächen: `/meine-ideen` für Mitarbeitende, den bisherigen Verwaltungsbereich
+für Champions/Core Team/Administration. Beide verwenden dieselben Use Cases und Kommentare.
+
+`POST /api/v1/auth/email-link` validiert Firmen-Domain und Eingaben, begrenzt Anforderungen pro
+E-Mail und Client-IP und sendet einen 15 Minuten gültigen Einmal-Link. `EmailLoginToken` enthält
+den Token-Hash sowie bei einer neuen Idee die unbestätigten Formularangaben. Der Klartext-Token
+steht ausschließlich im E-Mail-Link (URL-Fragment, nicht Querystring). Der Browser entfernt ihn
+aus der URL und löst erst nach einem ausdrücklichen Klick
+`POST /api/v1/auth/email-link/verify` aus.
+
+Die Verifikation verbraucht den Token und erstellt gegebenenfalls Mitarbeiterkonto, eingereichten
+Use Case, Statushistorie und Benachrichtigung in einer Datenbanktransaktion. Neue Konten erhalten
+keinen nutzbaren Passwort-Hash. Bestehende aktive Mitarbeiterkonten werden weiterverwendet.
+Verwaltungsrollen werden niemals durch einen E-Mail-Link authentifiziert. Das resultierende JWT
+ist auf Mitarbeiterzugang begrenzt; die Middleware prüft bei jeder Anfrage zusätzlich den
+aktuellen Kontostatus und die Rolle aus der Datenbank.
+
+`EmailNotification` ist die dauerhafte Versandwarteschlange. Statusänderungen und Kommentare
+werden jeweils gemeinsam mit ihren Benachrichtigungen transaktional gespeichert. Der Worker in
+`server.ts` läuft alle 30 Sekunden, wiederholt fehlgeschlagene Zustellungen und entfernt abgelaufene
+Verifikationseinträge sowie seit sieben Tagen versendete Benachrichtigungen. Zustellung erfolgt
+mindestens einmal; ein Absturz zwischen Versand und Bestätigung kann eine doppelte Mail verursachen.
+Der Worker setzt eine Backend-Instanz voraus. SMTP-Details und lokaler Dateimodus stehen in der README.
+
+Die Zugriffskontrolle für alle `use-cases/:id`-Unterrouten erfolgt zentral vor dem jeweiligen Handler
+und vor Dateiuploads. Downloads prüfen ebenfalls den Besitzerzugriff. `allowedNextStatuses` ist nach
+Rolle und Eigentümerschaft gefiltert; `canEdit` steuert die Bearbeitungsschaltfläche. Die API erzwingt
+dieselben Rechte unabhängig von der Oberfläche.
+
 ## 1. Systemübersicht
 
 ```mermaid
@@ -139,10 +171,10 @@ flowchart TB
     Routes --> Middleware[Auth / RBAC / Validation / Error Handling]
 ```
 
-- **Repository Pattern**: Jede Entität hat ein `I*Repository`-Interface; die aktuelle Implementierung
-  ist Prisma-basiert. Ein Wechsel auf Azure SQL erfordert nur eine neue Implementierung dieser
-  Interfaces plus Anpassung von `datasource` in `schema.prisma` — Services/Controller bleiben
-  unverändert.
+- **Repository Pattern**: Bestehende Ressourcen verwenden `I*Repository`-Interfaces mit
+  Prisma-Implementierungen. E-Mail-Verifikation, Kommentarversand und Workflowänderungen nutzen
+  explizite Prisma-Transaktionen für zusammengehörige Schreibvorgänge. Ein Datenbankwechsel erfordert
+  daher auch eine Prüfung dieser Transaktionen, Migrationen und datenbankspezifischen Abfragen.
 - **Service Layer**: Enthält die gesamte Fachlogik, insbesondere `WorkflowService` (zentrale
   Statusübergangs- und Berechtigungsregeln, siehe `domain/workflowRules.ts`).
 - **Keine Businesslogik im Frontend**: Das Frontend zeigt nur an, was die API erlaubt
@@ -173,5 +205,5 @@ flowchart TB
   Repository/Service/Route-Trios ergänzen, ohne bestehende Module anzufassen.
 - `IAIService` kapselt jede KI-Fähigkeit hinter einer stabilen Schnittstelle — ein Wechsel auf
   Azure OpenAI oder ein anderes Modell ändert nur `ai/aiServiceFactory.ts` und Umgebungsvariablen.
-- Die Repository-Schicht entkoppelt Fachlogik vollständig von SQLite; ein Wechsel auf Azure SQL ist
-  ein reiner Infrastruktur-Austausch.
+- Die Repository-Schicht bündelt viele Datenzugriffe. Bei einem Wechsel auf Azure SQL sind zusätzlich
+  Transaktionen und die SQLite-Abfrage für E-Mail-Adressen ohne Beachtung der Großschreibung anzupassen.

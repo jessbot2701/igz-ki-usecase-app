@@ -12,6 +12,17 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   return <>{children}</>;
 }
 
+export function RequireEmployee({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
+  const location = useLocation();
+  if (!user) {
+    const id = location.pathname.split('/')[2];
+    return <Navigate to={`/zugang${id ? `?idee=${encodeURIComponent(id)}` : ''}`} replace />;
+  }
+  if (user.role !== Role.EMPLOYEE) return <Navigate to="/" replace />;
+  return <>{children}</>;
+}
+
 export function RequireRole({ roles, children }: { roles: Role[]; children: ReactNode }) {
   const { user } = useAuth();
   if (!user || !roles.includes(user.role)) {

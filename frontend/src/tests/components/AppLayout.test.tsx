@@ -4,6 +4,9 @@ import { describe, expect, it, vi } from 'vitest';
 import { AppLayout } from '../../components/AppLayout';
 import { ThemeModeProvider } from '../../context/ThemeModeContext';
 import { Role } from '../../types';
+vi.mock('../../features/ideas/useEmailAccessConfig', () => ({
+  useEmailAccessConfig: () => ({ demoMode: false })
+}));
 
 vi.mock('../../context/AuthContext', () => ({
   useAuth: () => ({

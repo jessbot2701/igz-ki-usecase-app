@@ -22,6 +22,7 @@ export interface PortfolioStats {
   byStrategicRelevance: Record<string, number>;
   openDecisions: number;
   needMoreInfo: number;
+  unansweredQuestions: number;
   missingEvaluations: number;
   overdueTargetDates: number;
   attentionItems: DecisionAttentionItem[];
@@ -72,7 +73,9 @@ export interface DecisionAttentionItem {
   responsible: string | null;
   targetDate: string | null;
   status: UseCaseStatus;
-  reasons: Array<'NEED_MORE_INFO' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'>;
+  reasons: Array<
+    'NEED_MORE_INFO' | 'ANSWER_RECEIVED' | 'OVERDUE_TARGET_DATE' | 'MISSING_EVALUATION'
+  >;
 }
 
 export interface ActivityFeedEntry {
@@ -147,7 +150,10 @@ export function computeDecisionDurationTrend(
       continue;
     }
 
-    if (DECISION_STATUSES.has(transition.toStatus as never) && submittedAt.has(transition.useCaseId)) {
+    if (
+      DECISION_STATUSES.has(transition.toStatus as never) &&
+      submittedAt.has(transition.useCaseId)
+    ) {
       const submitted = submittedAt.get(transition.useCaseId)!;
       decisions.push({
         decidedAt: transition.changedAt,
@@ -223,7 +229,10 @@ function toTopUseCaseSummary(field: PortfolioOverviewField): TopUseCaseSummary {
     effort: field.implementationEffort,
     risk: field.evaluationRisk,
     status,
-    nextAction: NEXT_ACTIONS[status],
+    nextAction:
+      status === UseCaseStatus.NEED_MORE_INFO && field.clarificationAnsweredAt
+        ? 'Antwort prüfen'
+        : NEXT_ACTIONS[status],
     priority: priorityScore >= 16 ? 'HIGH' : priorityScore >= 11 ? 'MEDIUM' : 'LOW',
     priorityScore,
     updatedAt: field.updatedAt
@@ -261,8 +270,8 @@ export class DashboardService {
     private readonly evaluations: IEvaluationRepository = evaluationRepository
   ) {}
 
-  async stats(): Promise<DashboardStats> {
-    const counts = await this.useCases.countByStatus();
+  async stats(createdById?: string): Promise<DashboardStats> {
+    const counts = await this.useCases.countByStatus(createdById);
     const byStatus = Object.fromEntries(
       Object.values(UseCaseStatus).map((status) => [status, counts[status] ?? 0])
     ) as Record<UseCaseStatus, number>;
@@ -281,7 +290,8 @@ export class DashboardService {
     const attentionItems = fields
       .map((field): DecisionAttentionItem | null => {
         const reasons: DecisionAttentionItem['reasons'] = [];
-        if (field.status === UseCaseStatus.NEED_MORE_INFO) reasons.push('NEED_MORE_INFO');
+        if (field.status === UseCaseStatus.NEED_MORE_INFO)
+          reasons.push(field.clarificationAnsweredAt ? 'ANSWER_RECEIVED' : 'NEED_MORE_INFO');
         if (isOverdueTargetDate(field.targetDate, now)) reasons.push('OVERDUE_TARGET_DATE');
         if (field._count.evaluations === 0 && OPEN_DECISION_STATUSES.includes(field.status)) {
           reasons.push('MISSING_EVALUATION');
@@ -299,11 +309,18 @@ export class DashboardService {
         };
       })
       .filter((item): item is DecisionAttentionItem => item !== null)
-      .sort((left, right) => right.reasons.length - left.reasons.length || left.title.localeCompare(right.title, 'de'));
+      .sort(
+        (left, right) =>
+          right.reasons.length - left.reasons.length || left.title.localeCompare(right.title, 'de')
+      );
 
     const topUseCases = overviewFields
       .map(toTopUseCaseSummary)
-      .sort((left, right) => right.priorityScore - left.priorityScore || right.updatedAt.getTime() - left.updatedAt.getTime())
+      .sort(
+        (left, right) =>
+          right.priorityScore - left.priorityScore ||
+          right.updatedAt.getTime() - left.updatedAt.getTime()
+      )
       .slice(0, 8);
 
     return {
@@ -311,6 +328,9 @@ export class DashboardService {
       byStrategicRelevance: tally(riskAndRelevance.map((r) => r.strategicRelevance)),
       openDecisions: fields.filter((f) => OPEN_DECISION_STATUSES.includes(f.status)).length,
       needMoreInfo: fields.filter((f) => f.status === UseCaseStatus.NEED_MORE_INFO).length,
+      unansweredQuestions: fields.filter(
+        (f) => f.status === UseCaseStatus.NEED_MORE_INFO && !f.clarificationAnsweredAt
+      ).length,
       missingEvaluations: fields.filter(
         (f) => f._count.evaluations === 0 && OPEN_DECISION_STATUSES.includes(f.status)
       ).length,

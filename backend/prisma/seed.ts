@@ -17,7 +17,15 @@ import {
 const prisma = new PrismaClient();
 
 const SEED_PASSWORD = 'Passwort123!';
-const SEED_DEPARTMENTS = ['AI Core Team', 'Finanzen', 'IT', 'Personal', 'Produktion', 'Recht', 'Vertrieb'];
+const SEED_DEPARTMENTS = [
+  'AI Core Team',
+  'Finanzen',
+  'IT',
+  'Personal',
+  'Produktion',
+  'Recht',
+  'Vertrieb'
+];
 
 async function seedDepartments() {
   await Promise.all(
@@ -38,9 +46,24 @@ async function upsertUser(name: string, email: string, role: Role, department: s
 
 async function main() {
   await seedDepartments();
-  const employee = await upsertUser('Anna Employee', 'employee@igz.example', Role.EMPLOYEE, 'Vertrieb');
-  const champion = await upsertUser('Chris Champion', 'champion@igz.example', Role.AI_CHAMPION, 'IT');
-  const coreTeam = await upsertUser('Cora Coreteam', 'coreteam@igz.example', Role.AI_CORE_TEAM, 'AI Core Team');
+  const employee = await upsertUser(
+    'Anna Employee',
+    'employee@igz.example',
+    Role.EMPLOYEE,
+    'Vertrieb'
+  );
+  const champion = await upsertUser(
+    'Chris Champion',
+    'champion@igz.example',
+    Role.AI_CHAMPION,
+    'IT'
+  );
+  const coreTeam = await upsertUser(
+    'Cora Coreteam',
+    'coreteam@igz.example',
+    Role.AI_CORE_TEAM,
+    'AI Core Team'
+  );
   const admin = await upsertUser('Adam Admin', 'admin@igz.example', Role.ADMINISTRATOR, 'IT');
 
   const existingCount = await prisma.useCase.count();
@@ -55,7 +78,9 @@ async function main() {
       requestor: employee.name,
       department: 'Finanzen',
       aiChampion: champion.name,
-      problemDescription: 'Eingangsrechnungen werden manuell auf Plausibilität geprüft, was viel Zeit kostet.',
+      aiChampionId: champion.id,
+      problemDescription:
+        'Eingangsrechnungen werden manuell auf Plausibilität geprüft, was viel Zeit kostet.',
       currentProcess: 'Manuelle Sichtprüfung durch die Buchhaltung.',
       painPoints: 'Hoher manueller Aufwand, Fehleranfälligkeit.',
       frequency: 'Täglich',
@@ -86,6 +111,7 @@ async function main() {
       requestor: champion.name,
       department: 'IT',
       aiChampion: champion.name,
+      aiChampionId: champion.id,
       problemDescription: 'Wiederkehrende IT-Support-Anfragen binden viel Kapazität des Helpdesks.',
       currentProcess: 'Ticketsystem mit manueller Beantwortung.',
       painPoints: 'Lange Wartezeiten bei Standardanfragen.',
@@ -117,6 +143,7 @@ async function main() {
       requestor: employee.name,
       department: 'Recht',
       aiChampion: champion.name,
+      aiChampionId: champion.id,
       problemDescription: 'Verträge müssen manuell auf Risikoklauseln geprüft werden.',
       currentProcess: 'Juristische Einzelprüfung jedes Vertrags.',
       painPoints: 'Zeitintensiv, abhängig von Verfügbarkeit der Fachabteilung.',
@@ -134,9 +161,10 @@ async function main() {
       estimatedTimeSavings: '5 Stunden/Woche',
       aiSolutionType: AiSolutionType.EIGENENTWICKLUNG,
       implementationEffort: Level.MITTEL,
-      dataClassifications: [DataClassification.VERTRAULICHE_DATEN, DataClassification.PERSONENBEZOGENE_DATEN].join(
-        ','
-      ),
+      dataClassifications: [
+        DataClassification.VERTRAULICHE_DATEN,
+        DataClassification.PERSONENBEZOGENE_DATEN
+      ].join(','),
       riskAssessment: 'Mittel',
       securityNotes: 'Enthält personenbezogene und vertrauliche Daten.',
       responsible: coreTeam.name,
@@ -153,6 +181,7 @@ async function main() {
       requestor: champion.name,
       department: 'Produktion',
       aiChampion: champion.name,
+      aiChampionId: champion.id,
       problemDescription: 'Ungeplante Maschinenausfälle verursachen Produktionsstillstand.',
       currentProcess: 'Reaktive Wartung nach Ausfall.',
       painPoints: 'Hohe Ausfallkosten, ungeplante Stillstände.',
@@ -186,6 +215,7 @@ async function main() {
       requestor: employee.name,
       department: 'Vertrieb',
       aiChampion: champion.name,
+      aiChampionId: champion.id,
       problemDescription: 'Meeting-Protokolle werden inkonsistent und zeitverzögert erstellt.',
       solutionIdea: 'KI transkribiert und fasst Meetings automatisch zusammen.',
       targetGroup: 'Alle Teams',
@@ -211,6 +241,7 @@ async function main() {
       requestor: employee.name,
       department: 'Personal',
       aiChampion: champion.name,
+      aiChampionId: champion.id,
       problemDescription: 'Große Menge an Bewerbungen erschwert schnelle Vorauswahl.',
       solutionIdea: 'Automatisches Ranking von Bewerbungen nach Anforderungsprofil.',
       targetGroup: 'HR',
@@ -234,23 +265,82 @@ async function main() {
 
   await prisma.statusHistory.createMany({
     data: [
-      { useCaseId: useCase1.id, fromStatus: null, toStatus: UseCaseStatus.DRAFT, changedById: employee.id },
-      { useCaseId: useCase1.id, fromStatus: UseCaseStatus.DRAFT, toStatus: UseCaseStatus.SUBMITTED, changedById: employee.id },
-      { useCaseId: useCase2.id, fromStatus: null, toStatus: UseCaseStatus.DRAFT, changedById: champion.id },
-      { useCaseId: useCase2.id, fromStatus: UseCaseStatus.DRAFT, toStatus: UseCaseStatus.SUBMITTED, changedById: champion.id },
-      { useCaseId: useCase2.id, fromStatus: UseCaseStatus.SUBMITTED, toStatus: UseCaseStatus.IN_REVIEW, changedById: champion.id },
-      { useCaseId: useCase3.id, fromStatus: UseCaseStatus.IN_REVIEW, toStatus: UseCaseStatus.APPROVED, changedById: coreTeam.id, note: 'Vielversprechender Use Case, Pilot empfohlen.' },
-      { useCaseId: useCase4.id, fromStatus: UseCaseStatus.APPROVED, toStatus: UseCaseStatus.PILOT, changedById: coreTeam.id },
-      { useCaseId: useCase5.id, fromStatus: UseCaseStatus.PILOT, toStatus: UseCaseStatus.IMPLEMENTED, changedById: coreTeam.id },
-      { useCaseId: useCase6.id, fromStatus: UseCaseStatus.IN_REVIEW, toStatus: UseCaseStatus.REJECTED, changedById: coreTeam.id, note: 'Zu hohes rechtliches Risiko ohne weitere Absicherung.' }
+      {
+        useCaseId: useCase1.id,
+        fromStatus: null,
+        toStatus: UseCaseStatus.DRAFT,
+        changedById: employee.id
+      },
+      {
+        useCaseId: useCase1.id,
+        fromStatus: UseCaseStatus.DRAFT,
+        toStatus: UseCaseStatus.SUBMITTED,
+        changedById: employee.id
+      },
+      {
+        useCaseId: useCase2.id,
+        fromStatus: null,
+        toStatus: UseCaseStatus.DRAFT,
+        changedById: champion.id
+      },
+      {
+        useCaseId: useCase2.id,
+        fromStatus: UseCaseStatus.DRAFT,
+        toStatus: UseCaseStatus.SUBMITTED,
+        changedById: champion.id
+      },
+      {
+        useCaseId: useCase2.id,
+        fromStatus: UseCaseStatus.SUBMITTED,
+        toStatus: UseCaseStatus.IN_REVIEW,
+        changedById: champion.id
+      },
+      {
+        useCaseId: useCase3.id,
+        fromStatus: UseCaseStatus.IN_REVIEW,
+        toStatus: UseCaseStatus.APPROVED,
+        changedById: coreTeam.id,
+        note: 'Vielversprechender Use Case, Pilot empfohlen.'
+      },
+      {
+        useCaseId: useCase4.id,
+        fromStatus: UseCaseStatus.APPROVED,
+        toStatus: UseCaseStatus.PILOT,
+        changedById: coreTeam.id
+      },
+      {
+        useCaseId: useCase5.id,
+        fromStatus: UseCaseStatus.PILOT,
+        toStatus: UseCaseStatus.IMPLEMENTED,
+        changedById: coreTeam.id
+      },
+      {
+        useCaseId: useCase6.id,
+        fromStatus: UseCaseStatus.IN_REVIEW,
+        toStatus: UseCaseStatus.REJECTED,
+        changedById: coreTeam.id,
+        note: 'Zu hohes rechtliches Risiko ohne weitere Absicherung.'
+      }
     ]
   });
 
   await prisma.comment.createMany({
     data: [
-      { useCaseId: useCase1.id, authorId: champion.id, text: 'Bitte genauer beschreiben, welche Rechnungsformate vorliegen.' },
-      { useCaseId: useCase2.id, authorId: coreTeam.id, text: 'Guter Ansatz, bitte Datenschutzaspekte klären.' },
-      { useCaseId: useCase6.id, authorId: coreTeam.id, text: 'Diskriminierungsrisiko muss vor Freigabe adressiert werden.' }
+      {
+        useCaseId: useCase1.id,
+        authorId: champion.id,
+        text: 'Bitte genauer beschreiben, welche Rechnungsformate vorliegen.'
+      },
+      {
+        useCaseId: useCase2.id,
+        authorId: coreTeam.id,
+        text: 'Guter Ansatz, bitte Datenschutzaspekte klären.'
+      },
+      {
+        useCaseId: useCase6.id,
+        authorId: coreTeam.id,
+        text: 'Diskriminierungsrisiko muss vor Freigabe adressiert werden.'
+      }
     ]
   });
 

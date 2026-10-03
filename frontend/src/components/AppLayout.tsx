@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Outlet, useLocation, useNavigate } from 'react-router-dom';
+import { Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import {
   AppBar,
   Avatar,
@@ -28,6 +28,7 @@ import SearchIcon from '@mui/icons-material/SearchOutlined';
 import LightModeIcon from '@mui/icons-material/LightModeOutlined';
 import DarkModeIcon from '@mui/icons-material/DarkModeOutlined';
 import { useAuth } from '../context/AuthContext';
+import { DemoNotice } from '../features/ideas/DemoNotice';
 import { useThemeMode } from '../context/ThemeModeContext';
 import { Role, ROLE_LABELS } from '../types';
 import { BRAND_BLUE, BRAND_GREEN, BRAND_NAVY, roleColors } from '../theme/theme';
@@ -42,7 +43,12 @@ const NAV_ITEMS = [
 
 const ADMIN_NAV_ITEMS: { label: string; path: string; icon: JSX.Element; roles: Role[] }[] = [
   { label: 'Benutzer', path: '/admin/users', icon: <PeopleIcon />, roles: [Role.ADMINISTRATOR] },
-  { label: 'Stammdaten', path: '/admin/master-data', icon: <SettingsIcon />, roles: [Role.ADMINISTRATOR] },
+  {
+    label: 'Stammdaten',
+    path: '/admin/master-data',
+    icon: <SettingsIcon />,
+    roles: [Role.ADMINISTRATOR]
+  },
   {
     label: 'Aktivitätsprotokoll',
     path: '/admin/activity',
@@ -62,6 +68,13 @@ export function AppLayout() {
     (item) => user && item.roles.includes(user.role)
   );
   const mobileNavItems = [...NAV_ITEMS, ...availableAdminItems];
+
+  if (user?.role === Role.EMPLOYEE) {
+    const id = location.pathname.startsWith('/use-cases/')
+      ? location.pathname.split('/')[2]
+      : undefined;
+    return <Navigate to={id ? `/meine-ideen/${id}` : '/meine-ideen'} replace />;
+  }
 
   const runGlobalSearch = () => {
     if (!searchTerm.trim()) return;
@@ -248,6 +261,7 @@ export function AppLayout() {
         component="main"
         sx={{
           flexGrow: 1,
+          minWidth: 0,
           bgcolor: 'background.default',
           minHeight: '100vh',
           pb: { xs: 9, md: 0 }
@@ -255,6 +269,7 @@ export function AppLayout() {
       >
         <Toolbar sx={{ minHeight: { xs: 64, md: 72 } }} />
         <Box sx={{ p: { xs: 2, sm: 3, lg: 4 }, maxWidth: 1500, mx: 'auto' }}>
+          <DemoNotice />
           <Outlet />
         </Box>
       </Box>

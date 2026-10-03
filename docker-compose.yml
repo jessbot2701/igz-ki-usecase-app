@@ -14,6 +14,16 @@ services:
       AI_PROVIDER: ${AI_PROVIDER:-mock}
       CORS_ORIGIN: http://localhost:8080
       SEED_ON_START: ${SEED_ON_START:-true}
+      PUBLIC_APP_URL: ${PUBLIC_APP_URL:-http://localhost:8080}
+      EMAIL_ALLOWED_DOMAINS: ${EMAIL_ALLOWED_DOMAINS:-}
+      MAIL_TRANSPORT: ${MAIL_TRANSPORT:-smtp}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      MAIL_FROM: ${MAIL_FROM:-}
+      TRUST_PROXY: ${TRUST_PROXY:-uniquelocal}
     volumes:
       - db-data:/data
     expose:

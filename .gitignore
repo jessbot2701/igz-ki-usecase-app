@@ -4,6 +4,8 @@ dist/
 *.db
 *.db-journal
 uploads/
+.local-mail/
+.demo/
 !uploads/.gitkeep
 
 # Local agent tooling (Higgsfield CLI skills, not part of the application)

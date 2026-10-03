@@ -18,7 +18,13 @@ apiClient.interceptors.response.use(
       localStorage.removeItem('igz_token');
       localStorage.removeItem('igz_user');
       if (!window.location.pathname.startsWith('/login')) {
-        window.location.assign('/login');
+        const path = window.location.pathname;
+        if (path.startsWith('/meine-ideen')) {
+          const id = path.split('/')[2];
+          window.location.assign(`/zugang${id ? `?idee=${encodeURIComponent(id)}` : ''}`);
+        } else if (!path.startsWith('/zugang') && path !== '/idee-melden') {
+          window.location.assign('/login');
+        }
       }
     } else {
       const message = error.response?.data?.message ?? 'Ein Fehler ist aufgetreten.';

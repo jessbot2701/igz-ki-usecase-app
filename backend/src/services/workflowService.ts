@@ -1,12 +1,9 @@
 import { UseCase } from '@prisma/client';
 import { Role, UseCaseStatus } from '../domain/enums';
 import { ApiError } from '../utils/ApiError';
-import { allowedNextStatuses, findRule } from '../domain/workflowRules';
-import {
-  IStatusHistoryRepository,
-  statusHistoryRepository
-} from '../repositories/statusHistoryRepository';
-import { IUseCaseRepository, useCaseRepository } from '../repositories/useCaseRepository';
+import { TRANSITION_RULES, findRule } from '../domain/workflowRules';
+import { prisma } from '../config/prisma';
+import { queueUseCaseNotification } from './notificationService';
 
 export interface ActingUser {
   id: string;
@@ -15,13 +12,18 @@ export interface ActingUser {
 
 // Enforces the Use Case status workflow: valid transitions, role checks, and history logging
 export class WorkflowService {
-  constructor(
-    private readonly useCases: IUseCaseRepository = useCaseRepository,
-    private readonly history: IStatusHistoryRepository = statusHistoryRepository
-  ) {}
-
-  allowedNextStatuses(current: UseCaseStatus): UseCaseStatus[] {
-    return allowedNextStatuses(current);
+  allowedNextStatuses(
+    current: UseCaseStatus,
+    actingUser: ActingUser,
+    ownerId: string
+  ): UseCaseStatus[] {
+    return TRANSITION_RULES.filter(
+      (rule) =>
+        rule.from === current &&
+        rule.allowed.some((allowed) =>
+          allowed === 'OWNER' ? ownerId === actingUser.id : allowed === actingUser.role
+        )
+    ).map((rule) => rule.to);
   }
 
   async transition(
@@ -44,18 +46,35 @@ export class WorkflowService {
       throw ApiError.forbidden('Ihre Rolle erlaubt diesen Statuswechsel nicht');
     }
 
-    const updated = await this.useCases.update(useCase.id, {
-      status: toStatus,
-      lastModifiedById: actingUser.id
+    return prisma.$transaction(async (tx) => {
+      const changedAt = new Date();
+      const changed = await tx.useCase.updateMany({
+        where: { id: useCase.id, status: useCase.status },
+        data: {
+          status: toStatus,
+          lastModifiedById: actingUser.id,
+          ...(toStatus === UseCaseStatus.NEED_MORE_INFO
+            ? { clarificationRequestedAt: changedAt, clarificationAnsweredAt: null }
+            : {})
+        }
+      });
+      if (!changed.count)
+        throw ApiError.conflict(
+          'Der Status wurde inzwischen geändert. Bitte laden Sie den Vorgang neu.'
+        );
+      await tx.statusHistory.create({
+        data: {
+          useCaseId: useCase.id,
+          fromStatus: useCase.status,
+          toStatus,
+          changedById: actingUser.id,
+          changedAt,
+          note
+        }
+      });
+      await queueUseCaseNotification(tx, useCase.id, actingUser.id, toStatus);
+      return tx.useCase.findUniqueOrThrow({ where: { id: useCase.id } });
     });
-    await this.history.create({
-      useCaseId: useCase.id,
-      fromStatus: useCase.status as UseCaseStatus,
-      toStatus,
-      changedById: actingUser.id,
-      note
-    });
-    return updated;
   }
 }
 

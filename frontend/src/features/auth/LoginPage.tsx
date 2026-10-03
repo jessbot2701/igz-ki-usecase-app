@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useLocation, useNavigate } from 'react-router-dom';
 import { Alert, Box, Button, Paper, Stack, TextField, Typography } from '@mui/material';
 import { useAuth } from '../../context/AuthContext';
 import { APP_BAR_GRADIENT } from '../../theme/theme';
 import igzLogo from '../../assets/igz-logo.jpg';
 import pptNetworkWarm from '../../assets/illustrations/ppt-network-warm.jpg';
+import { DemoNotice } from '../ideas/DemoNotice';
 
 export function LoginPage() {
   const { login, loading } = useAuth();
@@ -41,6 +42,7 @@ export function LoginPage() {
       }}
     >
       <Paper elevation={0} sx={{ p: { xs: 3, sm: 5 }, width: 430, borderRadius: 3 }}>
+        <DemoNotice />
         <Stack spacing={1} alignItems="center" sx={{ mb: 3 }}>
           <Box
             component="img"
@@ -49,10 +51,10 @@ export function LoginPage() {
             sx={{ width: 260, maxWidth: '100%', mb: 3 }}
           />
           <Typography variant="h5" fontWeight={700}>
-            AI Use Case Portal
+            Use Cases verwalten
           </Typography>
           <Typography variant="body2" color="text.secondary" textAlign="center">
-            Erfassen, bewerten und verwalten Sie Ihre AI Use Cases zentral.
+            Anmeldung für AI Champions, AI Core Team und Administration.
           </Typography>
         </Stack>
         <form onSubmit={handleSubmit}>
@@ -80,6 +82,14 @@ export function LoginPage() {
             </Button>
           </Stack>
         </form>
+        <Stack sx={{ mt: 3 }} spacing={1}>
+          <Button component={RouterLink} to="/idee-melden">
+            Als Mitarbeiter eine Idee melden
+          </Button>
+          <Button component={RouterLink} to="/zugang">
+            Meine Ideen ohne Passwort öffnen
+          </Button>
+        </Stack>
       </Paper>
     </Box>
   );

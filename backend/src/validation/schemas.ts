@@ -14,13 +14,13 @@ import {
 } from '../domain/enums';
 
 export const loginSchema = z.object({
-  email: z.string().email(),
+  email: z.string().trim().email().toLowerCase(),
   password: z.string().min(1)
 });
 
 export const createUserSchema = z.object({
   name: z.string().min(2),
-  email: z.string().email(),
+  email: z.string().trim().email().toLowerCase(),
   password: z.string().min(8),
   role: z.nativeEnum(Role),
   department: z.string().optional()
@@ -46,7 +46,7 @@ export const useCaseInputSchema = z.object({
   title: z.string().min(3).max(200),
   requestor: z.string().min(2),
   department: z.string().min(2),
-  aiChampion: z.string().optional(),
+  aiChampionId: z.string().cuid().nullable().optional(),
   problemDescription: z.string().min(10),
   currentProcess: z.string().optional(),
   painPoints: z.string().optional(),
@@ -76,13 +76,41 @@ export const useCaseInputSchema = z.object({
 
 export const useCaseUpdateSchema = useCaseInputSchema.partial();
 
+export const ideaInputSchema = z
+  .object({
+    title: z.string().trim().min(3).max(200),
+    department: z.string().trim().min(2).max(120),
+    problemDescription: z.string().trim().min(10).max(5000),
+    solutionIdea: z.string().trim().min(10).max(5000)
+  })
+  .strict();
+
+export const emailLinkRequestSchema = z
+  .object({
+    email: z.string().trim().email().max(254).toLowerCase(),
+    name: z.string().trim().min(2).max(120).optional(),
+    idea: ideaInputSchema.optional(),
+    targetId: z.string().cuid().optional()
+  })
+  .strict()
+  .refine((value) => !value.idea || Boolean(value.name), {
+    message: 'Bitte geben Sie Ihren Namen an.',
+    path: ['name']
+  });
+
+export const emailLinkVerifySchema = z
+  .object({
+    token: z.string().regex(/^[a-f0-9]{64}$/)
+  })
+  .strict();
+
 export const statusTransitionSchema = z.object({
   toStatus: z.nativeEnum(UseCaseStatus),
   note: z.string().optional()
 });
 
 export const commentSchema = z.object({
-  text: z.string().min(1).max(4000)
+  text: z.string().trim().min(1).max(4000)
 });
 
 export const evaluationSchema = z.object({
@@ -94,6 +122,7 @@ export const evaluationSchema = z.object({
 });
 
 export const useCaseSearchSchema = z.object({
+  unansweredOnly: z.enum(['true', 'false']).transform((value) => value === 'true').optional(),
   search: z.string().optional(),
   status: z.nativeEnum(UseCaseStatus).optional(),
   department: z.string().optional(),

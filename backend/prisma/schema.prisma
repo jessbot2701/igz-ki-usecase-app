@@ -28,6 +28,8 @@ model User {
   comments            Comment[]
   evaluations         Evaluation[]
   uploadedAttachments Attachment[]
+  emailNotifications EmailNotification[]
+  assignedUseCases UseCase[] @relation("AssignedChampion")
 
   @@map("users")
 }
@@ -50,6 +52,8 @@ model UseCase {
   requestor  String
   department String
   aiChampion String?
+  aiChampionId String?
+  assignedChampion User? @relation("AssignedChampion", fields: [aiChampionId], references: [id], onDelete: SetNull)
 
   problemDescription String
   currentProcess     String?
@@ -83,6 +87,8 @@ model UseCase {
   targetDate  String?
 
   status String @default("DRAFT")
+  clarificationRequestedAt DateTime?
+  clarificationAnsweredAt DateTime?
 
   createdById      String
   createdBy        User   @relation("CreatedBy", fields: [createdById], references: [id])
@@ -96,9 +102,11 @@ model UseCase {
   comments      Comment[]
   evaluations   Evaluation[]
   attachments   Attachment[]
+  emailNotifications EmailNotification[]
 
   @@index([status])
   @@index([department])
+  @@index([aiChampionId])
   @@map("use_cases")
 }
 
@@ -161,4 +169,40 @@ model Attachment {
 
   @@index([useCaseId])
   @@map("attachments")
+}
+
+// Only token hashes are stored. Unconfirmed ideas expire with their verification link.
+model EmailLoginToken {
+  id            String   @id @default(cuid())
+  tokenHash     String   @unique
+  email         String
+  name          String?
+  ideaJson      String?
+  targetId      String?
+  requestIpHash String
+  createdAt     DateTime @default(now())
+  expiresAt     DateTime
+  usedAt        DateTime?
+
+  @@index([email, createdAt])
+  @@index([requestIpHash, createdAt])
+  @@index([expiresAt])
+  @@map("email_login_tokens")
+}
+
+// Durable notification queue; failed delivery does not discard a saved comment or status change.
+model EmailNotification {
+  id            String   @id @default(cuid())
+  recipientId   String
+  recipient     User     @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+  useCaseId     String
+  useCase       UseCase  @relation(fields: [useCaseId], references: [id], onDelete: Cascade)
+  kind          String
+  createdAt     DateTime @default(now())
+  sentAt        DateTime?
+  attempts      Int      @default(0)
+  nextAttemptAt DateTime @default(now())
+
+  @@index([sentAt, nextAttemptAt])
+  @@map("email_notifications")
 }

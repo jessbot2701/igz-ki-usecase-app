@@ -103,14 +103,23 @@ function GeneralOverview() {
 
       <Card>
         <CardContent sx={{ p: 2.75 }}>
-          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" spacing={1} sx={{ mb: 2.5 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            justifyContent="space-between"
+            spacing={1}
+            sx={{ mb: 2.5 }}
+          >
             <Box>
               <Typography variant="h6">Workflow-Pipeline</Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mt: 0.35 }}>
                 Wo stehen die Use Cases gerade und wo sammelt sich Arbeit?
               </Typography>
             </Box>
-            <Chip label={data ? `${data.total} Use Cases gesamt` : 'Lädt…'} size="small" variant="outlined" />
+            <Chip
+              label={data ? `${data.total} Use Cases gesamt` : 'Lädt…'}
+              size="small"
+              variant="outlined"
+            />
           </Stack>
           <Stack spacing={1.6}>
             {PIPELINE_STATUSES.map((pipelineStatus) => {
@@ -122,8 +131,17 @@ function GeneralOverview() {
                   onClick={() => navigate(`/use-cases?status=${pipelineStatus}`)}
                   sx={{ cursor: 'pointer', '&:hover .pipeline-label': { color: 'primary.main' } }}
                 >
-                  <Stack direction="row" justifyContent="space-between" spacing={2} sx={{ mb: 0.55 }}>
-                    <Typography className="pipeline-label" variant="body2" sx={{ fontWeight: 700, transition: 'color 160ms ease' }}>
+                  <Stack
+                    direction="row"
+                    justifyContent="space-between"
+                    spacing={2}
+                    sx={{ mb: 0.55 }}
+                  >
+                    <Typography
+                      className="pipeline-label"
+                      variant="body2"
+                      sx={{ fontWeight: 700, transition: 'color 160ms ease' }}
+                    >
                       {STATUS_LABELS[pipelineStatus]}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ fontWeight: 700 }}>
@@ -137,7 +155,10 @@ function GeneralOverview() {
                       height: 9,
                       borderRadius: 5,
                       bgcolor: 'action.hover',
-                      '& .MuiLinearProgress-bar': { bgcolor: statusColors[pipelineStatus], borderRadius: 5 }
+                      '& .MuiLinearProgress-bar': {
+                        bgcolor: statusColors[pipelineStatus],
+                        borderRadius: 5
+                      }
                     }}
                   />
                 </Box>
@@ -152,7 +173,8 @@ function GeneralOverview() {
 
 // Portfolio-level analytics for the AI Core Team / Administrator monitoring view
 const ATTENTION_REASON_LABELS = {
-  NEED_MORE_INFO: 'Rückfrage beantworten',
+  NEED_MORE_INFO: 'Antwort ausstehend',
+  ANSWER_RECEIVED: 'Antwort eingegangen – prüfen',
   OVERDUE_TARGET_DATE: 'Zieltermin überschritten',
   MISSING_EVALUATION: 'Bewertung ausstehend'
 };
@@ -229,13 +251,13 @@ function DecisionQueue() {
           <Card sx={{ borderLeft: '4px solid', borderLeftColor: 'error.main', height: '100%' }}>
             <CardContent>
               <Typography variant="body2" color="text.secondary">
-                Rückfragen
+                Unbeantwortete Rückfragen
               </Typography>
               {isLoading || !data ? (
                 <Skeleton width={60} height={40} />
               ) : (
                 <Typography variant="h4" color="error.main">
-                  {data.needMoreInfo}
+                  {data.unansweredQuestions}
                 </Typography>
               )}
               <Typography variant="caption" color="text.secondary">
@@ -381,57 +403,94 @@ function TopUseCases({ data, isLoading }: { data?: PortfolioStats; isLoading: bo
             </TableHead>
             <TableBody>
               {isLoading && (
-                <TableRow><TableCell colSpan={6}><Skeleton height={180} /></TableCell></TableRow>
-              )}
-              {!isLoading && data?.topUseCases?.map((useCase) => (
-                <TableRow
-                  key={useCase.id}
-                  hover
-                  onClick={() => navigate(`/use-cases/${useCase.id}`)}
-                  sx={{ cursor: 'pointer' }}
-                >
-                  <TableCell>
-                    <Stack direction="row" spacing={1.25} alignItems="flex-start">
-                      <Box sx={{ width: 4, minWidth: 4, height: 42, borderRadius: 2, bgcolor: PRIORITY_DISPLAY[useCase.priority].accent }} />
-                      <Box>
-                        <Stack direction="row" spacing={0.75} alignItems="center">
-                          <Typography variant="body2" sx={{ fontWeight: 700 }}>{useCase.title}</Typography>
-                          <Tooltip
-                            title={`${PRIORITY_DISPLAY[useCase.priority].label}: Score ${useCase.priorityScore}. Je höher der Score, desto dringlicher sollte der Use Case bearbeitet werden.`}
-                          >
-                            <Chip size="small" color={PRIORITY_DISPLAY[useCase.priority].color} label={PRIORITY_DISPLAY[useCase.priority].label} />
-                          </Tooltip>
-                        </Stack>
-                        <Typography variant="caption" color="text.secondary">{useCase.department}</Typography>
-                      </Box>
-                    </Stack>
-                  </TableCell>
-                  <TableCell sx={{ maxWidth: 230 }}>
-                    <Typography variant="body2" noWrap title={useCase.expectedBenefit ?? undefined}>
-                      {useCase.expectedBenefit || 'Noch nicht beschrieben'}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>{LEVEL_DISPLAY[useCase.effort ?? ''] ?? '–'}</TableCell>
-                  <TableCell>{RISK_DISPLAY[useCase.risk ?? ''] ?? '–'}</TableCell>
-                  <TableCell><StatusChip status={useCase.status} /></TableCell>
-                  <TableCell>
-                    <Button
-                      size="small"
-                      variant="outlined"
-                      endIcon={<ArrowForwardOutlinedIcon />}
-                      sx={{ width: 190, minWidth: 190, minHeight: 40, justifyContent: 'space-between', whiteSpace: 'nowrap' }}
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        navigate(`/use-cases/${useCase.id}`);
-                      }}
-                    >
-                      {useCase.nextAction}
-                    </Button>
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Skeleton height={180} />
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
+              {!isLoading &&
+                data?.topUseCases?.map((useCase) => (
+                  <TableRow
+                    key={useCase.id}
+                    hover
+                    onClick={() => navigate(`/use-cases/${useCase.id}`)}
+                    sx={{ cursor: 'pointer' }}
+                  >
+                    <TableCell>
+                      <Stack direction="row" spacing={1.25} alignItems="flex-start">
+                        <Box
+                          sx={{
+                            width: 4,
+                            minWidth: 4,
+                            height: 42,
+                            borderRadius: 2,
+                            bgcolor: PRIORITY_DISPLAY[useCase.priority].accent
+                          }}
+                        />
+                        <Box>
+                          <Stack direction="row" spacing={0.75} alignItems="center">
+                            <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                              {useCase.title}
+                            </Typography>
+                            <Tooltip
+                              title={`${PRIORITY_DISPLAY[useCase.priority].label}: Score ${useCase.priorityScore}. Je höher der Score, desto dringlicher sollte der Use Case bearbeitet werden.`}
+                            >
+                              <Chip
+                                size="small"
+                                color={PRIORITY_DISPLAY[useCase.priority].color}
+                                label={PRIORITY_DISPLAY[useCase.priority].label}
+                              />
+                            </Tooltip>
+                          </Stack>
+                          <Typography variant="caption" color="text.secondary">
+                            {useCase.department}
+                          </Typography>
+                        </Box>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={{ maxWidth: 230 }}>
+                      <Typography
+                        variant="body2"
+                        noWrap
+                        title={useCase.expectedBenefit ?? undefined}
+                      >
+                        {useCase.expectedBenefit || 'Noch nicht beschrieben'}
+                      </Typography>
+                    </TableCell>
+                    <TableCell>{LEVEL_DISPLAY[useCase.effort ?? ''] ?? '–'}</TableCell>
+                    <TableCell>{RISK_DISPLAY[useCase.risk ?? ''] ?? '–'}</TableCell>
+                    <TableCell>
+                      <StatusChip status={useCase.status} />
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="small"
+                        variant="outlined"
+                        endIcon={<ArrowForwardOutlinedIcon />}
+                        sx={{
+                          width: 190,
+                          minWidth: 190,
+                          minHeight: 40,
+                          justifyContent: 'space-between',
+                          whiteSpace: 'nowrap'
+                        }}
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          navigate(`/use-cases/${useCase.id}`);
+                        }}
+                      >
+                        {useCase.nextAction}
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
               {!isLoading && data?.topUseCases && data.topUseCases.length === 0 && (
-                <TableRow><TableCell colSpan={6} align="center" sx={{ py: 4 }}>Keine Use Cases vorhanden.</TableCell></TableRow>
+                <TableRow>
+                  <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                    Keine Use Cases vorhanden.
+                  </TableCell>
+                </TableRow>
               )}
             </TableBody>
           </Table>
@@ -451,7 +510,11 @@ function DecisionDuration({ data, isLoading }: { data?: PortfolioStats; isLoadin
         <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
           <TimerOutlinedIcon color="primary" />
           <Typography variant="h6">Entscheidungsdauer</Typography>
-          <Chip size="small" label={`Zielwert ${data?.decisionDuration?.targetDays ?? 10} Tage`} variant="outlined" />
+          <Chip
+            size="small"
+            label={`Zielwert ${data?.decisionDuration?.targetDays ?? 10} Tage`}
+            variant="outlined"
+          />
         </Stack>
         <Typography variant="body2" color="text.secondary">
           Durchschnitt von „Eingereicht“ bis „Genehmigt“ oder „Abgelehnt“.
@@ -471,13 +534,21 @@ function DecisionDuration({ data, isLoading }: { data?: PortfolioStats; isLoadin
             {trend.map((point) => (
               <Box key={point.month}>
                 <Stack direction="row" justifyContent="space-between" sx={{ mb: 0.4 }}>
-                  <Typography variant="caption" sx={{ fontWeight: 700 }}>{formatMonth(point.month)}</Typography>
-                  <Typography variant="caption" color="text.secondary">{point.averageDays.toFixed(1)} Tage · {point.decidedCount} Fälle</Typography>
+                  <Typography variant="caption" sx={{ fontWeight: 700 }}>
+                    {formatMonth(point.month)}
+                  </Typography>
+                  <Typography variant="caption" color="text.secondary">
+                    {point.averageDays.toFixed(1)} Tage · {point.decidedCount} Fälle
+                  </Typography>
                 </Stack>
                 <LinearProgress
                   variant="determinate"
                   value={(point.averageDays / maxDays) * 100}
-                  sx={{ height: 7, borderRadius: 4, '& .MuiLinearProgress-bar': { borderRadius: 4 } }}
+                  sx={{
+                    height: 7,
+                    borderRadius: 4,
+                    '& .MuiLinearProgress-bar': { borderRadius: 4 }
+                  }}
                 />
               </Box>
             ))}
@@ -487,11 +558,22 @@ function DecisionDuration({ data, isLoading }: { data?: PortfolioStats; isLoadin
             Noch keine abgeschlossenen Entscheidungen vorhanden.
           </Typography>
         )}
-        {data?.decisionDuration?.averageDays !== null && data?.decisionDuration?.averageDays !== undefined && (
-          <Typography variant="caption" color={data.decisionDuration.averageDays <= data.decisionDuration.targetDays ? 'success.main' : 'warning.main'} sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}>
-            {data.decisionDuration.averageDays <= data.decisionDuration.targetDays ? 'Im Zielkorridor' : 'Über dem Zielwert'}
-          </Typography>
-        )}
+        {data?.decisionDuration?.averageDays !== null &&
+          data?.decisionDuration?.averageDays !== undefined && (
+            <Typography
+              variant="caption"
+              color={
+                data.decisionDuration.averageDays <= data.decisionDuration.targetDays
+                  ? 'success.main'
+                  : 'warning.main'
+              }
+              sx={{ display: 'block', mt: 0.5, fontWeight: 700 }}
+            >
+              {data.decisionDuration.averageDays <= data.decisionDuration.targetDays
+                ? 'Im Zielkorridor'
+                : 'Über dem Zielwert'}
+            </Typography>
+          )}
       </CardContent>
     </Card>
   );
@@ -528,23 +610,34 @@ function DepartmentOverview({ data, isLoading }: { data?: PortfolioStats; isLoad
               </TableRow>
             </TableHead>
             <TableBody>
-              {isLoading && <TableRow><TableCell colSpan={6}><Skeleton height={120} /></TableCell></TableRow>}
-              {!isLoading && departments.map((item) => (
-                <TableRow key={item.department}>
-                  <TableCell sx={{ fontWeight: 700 }}>{item.department}</TableCell>
-                  <TableCell align="right">{item.total}</TableCell>
-                  <TableCell align="right">{item.openWorkload}</TableCell>
-                  <TableCell align="right">{item.overdueTargetDates || '–'}</TableCell>
-                  <TableCell align="right">{item.missingResponsible || '–'}</TableCell>
-                  <TableCell>
-                    <LinearProgress
-                      variant="determinate"
-                      value={(item.openWorkload / maxWorkload) * 100}
-                      sx={{ height: 8, borderRadius: 4, '& .MuiLinearProgress-bar': { borderRadius: 4 } }}
-                    />
+              {isLoading && (
+                <TableRow>
+                  <TableCell colSpan={6}>
+                    <Skeleton height={120} />
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
+              {!isLoading &&
+                departments.map((item) => (
+                  <TableRow key={item.department}>
+                    <TableCell sx={{ fontWeight: 700 }}>{item.department}</TableCell>
+                    <TableCell align="right">{item.total}</TableCell>
+                    <TableCell align="right">{item.openWorkload}</TableCell>
+                    <TableCell align="right">{item.overdueTargetDates || '–'}</TableCell>
+                    <TableCell align="right">{item.missingResponsible || '–'}</TableCell>
+                    <TableCell>
+                      <LinearProgress
+                        variant="determinate"
+                        value={(item.openWorkload / maxWorkload) * 100}
+                        sx={{
+                          height: 8,
+                          borderRadius: 4,
+                          '& .MuiLinearProgress-bar': { borderRadius: 4 }
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
             </TableBody>
           </Table>
         </TableContainer>
@@ -570,25 +663,37 @@ function PortfolioAnalytics() {
   );
 }
 
-
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const isPortfolioViewer = user?.role === Role.AI_CORE_TEAM || user?.role === Role.ADMINISTRATOR;
-  const intro = user?.role === Role.AI_CHAMPION
-    ? 'Bewertungen, Rückfragen und nächste Entscheidungen im Blick behalten.'
-    : user?.role === Role.AI_CORE_TEAM || user?.role === Role.ADMINISTRATOR
-      ? 'Portfolio priorisieren, Entscheidungen treffen und Umsetzung steuern.'
-      : 'Eigene AI-Ideen einreichen und den Fortschritt verfolgen.';
+  const intro =
+    user?.role === Role.AI_CHAMPION
+      ? 'Bewertungen, Rückfragen und nächste Entscheidungen im Blick behalten.'
+      : user?.role === Role.AI_CORE_TEAM || user?.role === Role.ADMINISTRATOR
+        ? 'Portfolio priorisieren, Entscheidungen treffen und Umsetzung steuern.'
+        : 'Eigene AI-Ideen einreichen und den Fortschritt verfolgen.';
 
   return (
     <Box>
-      <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'flex-start', sm: 'center' }} spacing={2} sx={{ mb: 3.5 }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        justifyContent="space-between"
+        alignItems={{ xs: 'flex-start', sm: 'center' }}
+        spacing={2}
+        sx={{ mb: 3.5 }}
+      >
         <Box>
           <Typography variant="h4">Dashboard</Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.75 }}>{intro}</Typography>
+          <Typography variant="body1" color="text.secondary" sx={{ mt: 0.75 }}>
+            {intro}
+          </Typography>
         </Box>
-        <Button variant="contained" startIcon={<AddOutlinedIcon />} onClick={() => navigate('/use-cases?create=1')}>
+        <Button
+          variant="contained"
+          startIcon={<AddOutlinedIcon />}
+          onClick={() => navigate('/use-cases?create=1')}
+        >
           Use Case anlegen
         </Button>
       </Stack>

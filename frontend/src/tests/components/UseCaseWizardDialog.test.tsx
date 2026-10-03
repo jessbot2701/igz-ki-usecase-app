@@ -6,7 +6,12 @@ import { UseCaseWizardDialog } from '../../features/usecases/UseCaseWizardDialog
 describe('UseCaseWizardDialog', () => {
   it('blocks advancing to step 2 when step 1 required fields are invalid', async () => {
     render(
-      <UseCaseWizardDialog open title="Neuen Use Case anlegen" onClose={vi.fn()} onSubmit={vi.fn()} />
+      <UseCaseWizardDialog
+        open
+        title="Neuen Use Case anlegen"
+        onClose={vi.fn()}
+        onSubmit={vi.fn()}
+      />
     );
 
     expect(screen.getByText('Basisinformationen')).toBeInTheDocument();
@@ -17,13 +22,29 @@ describe('UseCaseWizardDialog', () => {
   });
 
   it('advances through steps when required fields are filled and shows the review step', async () => {
+    const onSubmit = vi.fn();
     render(
-      <UseCaseWizardDialog open title="Neuen Use Case anlegen" onClose={vi.fn()} onSubmit={vi.fn()} />
+      <UseCaseWizardDialog
+        open
+        title="Neuen Use Case anlegen"
+        onClose={vi.fn()}
+        onSubmit={onSubmit}
+        champions={[
+          {
+            id: 'champion-account',
+            name: 'Alex Champion',
+            email: 'alex@test.local',
+            department: 'IT'
+          }
+        ]}
+      />
     );
 
     await userEvent.type(screen.getByLabelText(/Titel des Use Cases/i), 'Ein valider Titel');
     await userEvent.type(screen.getByLabelText(/Ansprechpartner/i), 'Max Mustermann');
     await userEvent.type(screen.getByLabelText(/^Bereich/i), 'IT');
+    await userEvent.click(screen.getByRole('combobox', { name: 'AI Champion' }));
+    await userEvent.click(screen.getByRole('option', { name: /Alex Champion/ }));
     await userEvent.click(screen.getByRole('button', { name: 'Weiter' }));
 
     expect(await screen.findByLabelText(/Beschreibung des heutigen Ablaufs/i)).toBeInTheDocument();
@@ -45,5 +66,7 @@ describe('UseCaseWizardDialog', () => {
 
     expect(await screen.findByText(/Bitte prüfen Sie Ihre Angaben/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Speichern' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    expect(onSubmit.mock.calls[0][0]).toMatchObject({ aiChampionId: 'champion-account' });
   });
 });

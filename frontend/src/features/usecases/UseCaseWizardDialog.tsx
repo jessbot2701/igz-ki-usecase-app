@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
+import { useEffect, useState } from 'react';
+import { Controller, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
   Box,
@@ -32,8 +32,10 @@ import {
   DATA_CLASSIFICATION_LABELS,
   LEVEL_LABELS,
   REACH_LABELS,
-  UseCase
+  UseCase,
+  ChampionOption
 } from '../../types';
+import { ChampionSelect } from './ChampionSelect';
 import {
   buildDefaultValues,
   renderMultiSelectField,
@@ -52,12 +54,37 @@ interface StepDefinition {
 }
 
 const STEP_DEFINITIONS: StepDefinition[] = [
-  { title: 'Basisinformationen', illustrationKey: 'basics', icon: <InfoOutlinedIcon />, imageSrc: pptAbstractShapes },
-  { title: 'Ausgangssituation & Problem', illustrationKey: 'problem', icon: <ReportProblemOutlinedIcon />, imageSrc: pptNetworkWarm },
-  { title: 'Lösungsidee & Zielgruppe', illustrationKey: 'solution', icon: <LightbulbOutlinedIcon />, imageSrc: pptAbstractShapes },
+  {
+    title: 'Basisinformationen',
+    illustrationKey: 'basics',
+    icon: <InfoOutlinedIcon />,
+    imageSrc: pptAbstractShapes
+  },
+  {
+    title: 'Ausgangssituation & Problem',
+    illustrationKey: 'problem',
+    icon: <ReportProblemOutlinedIcon />,
+    imageSrc: pptNetworkWarm
+  },
+  {
+    title: 'Lösungsidee & Zielgruppe',
+    illustrationKey: 'solution',
+    icon: <LightbulbOutlinedIcon />,
+    imageSrc: pptAbstractShapes
+  },
   { title: 'Nutzen & Aufwand', illustrationKey: 'value', icon: <TrendingUpOutlinedIcon /> },
-  { title: 'Daten & Sicherheit', illustrationKey: 'security', icon: <SecurityOutlinedIcon />, imageSrc: pptNetworkCool },
-  { title: 'Entscheidung & Review', illustrationKey: 'decision', icon: <FactCheckOutlinedIcon />, imageSrc: pptAbstractShapes }
+  {
+    title: 'Daten & Sicherheit',
+    illustrationKey: 'security',
+    icon: <SecurityOutlinedIcon />,
+    imageSrc: pptNetworkCool
+  },
+  {
+    title: 'Entscheidung & Review',
+    illustrationKey: 'decision',
+    icon: <FactCheckOutlinedIcon />,
+    imageSrc: pptAbstractShapes
+  }
 ];
 
 interface UseCaseWizardDialogProps {
@@ -68,6 +95,9 @@ interface UseCaseWizardDialogProps {
   onClose: () => void;
   onSubmit: (values: UseCaseFormData) => void;
   departments?: { id: string; name: string; active: boolean }[];
+  champions?: ChampionOption[];
+  championsLoading?: boolean;
+  championsUnavailable?: boolean;
 }
 
 function ReviewSummary({ values }: { values: UseCaseFormData }) {
@@ -78,7 +108,12 @@ function ReviewSummary({ values }: { values: UseCaseFormData }) {
     ['Problembeschreibung', values.problemDescription],
     ['Lösungsidee', values.solutionIdea],
     ['Reichweite', values.reach ? REACH_LABELS[values.reach] : '–'],
-    ['Nutzenart', values.benefitTypes?.length ? values.benefitTypes.map((v) => BENEFIT_TYPE_LABELS[v]).join(', ') : '–'],
+    [
+      'Nutzenart',
+      values.benefitTypes?.length
+        ? values.benefitTypes.map((v) => BENEFIT_TYPE_LABELS[v]).join(', ')
+        : '–'
+    ],
     ['Geschätzter Effekt', values.estimatedEffect ? LEVEL_LABELS[values.estimatedEffect] : '–'],
     [
       'KI-Lösung',
@@ -90,7 +125,10 @@ function ReviewSummary({ values }: { values: UseCaseFormData }) {
           }`
         : '–'
     ],
-    ['Umsetzungsaufwand', values.implementationEffort ? LEVEL_LABELS[values.implementationEffort] : '–'],
+    [
+      'Umsetzungsaufwand',
+      values.implementationEffort ? LEVEL_LABELS[values.implementationEffort] : '–'
+    ],
     [
       'Daten, Sicherheit und Compliance',
       values.dataClassifications?.length
@@ -129,9 +167,14 @@ export function UseCaseWizardDialog({
   submitting,
   onClose,
   onSubmit,
-  departments = []
+  departments = [],
+  champions = [],
+  championsLoading,
+  championsUnavailable
 }: UseCaseWizardDialogProps) {
-  const departmentOptions = Object.fromEntries(departments.map((department) => [department.name, department.name]));
+  const departmentOptions = Object.fromEntries(
+    departments.map((department) => [department.name, department.name])
+  );
   const [activeStep, setActiveStep] = useState(0);
   const {
     control,
@@ -146,6 +189,12 @@ export function UseCaseWizardDialog({
   });
 
   const aiSolutionType = watch('aiSolutionType');
+  useEffect(() => {
+    if (open) {
+      reset(buildDefaultValues(initialValues));
+      setActiveStep(0);
+    }
+  }, [open, initialValues, reset]);
   const isLastStep = activeStep === STEP_DEFINITIONS.length - 1;
 
   const handleClose = () => {
@@ -184,12 +233,42 @@ export function UseCaseWizardDialog({
         <form id="use-case-wizard-form" onSubmit={handleSubmit(onSubmit)}>
           {activeStep === 0 && (
             <Grid container spacing={2}>
-              {renderTextField(control, errors, 'title', 'Titel des Use Cases', { required: true, grid: 12 })}
-              {renderTextField(control, errors, 'requestor', 'Ansprechpartner / Einreicher', { required: true })}
+              {renderTextField(control, errors, 'title', 'Titel des Use Cases', {
+                required: true,
+                grid: 12
+              })}
+              {renderTextField(control, errors, 'requestor', 'Ansprechpartner / Einreicher', {
+                required: true
+              })}
               {departments.length > 0
-                ? renderSelectField(control, errors, 'department', 'Bereich / Abteilung', departmentOptions)
-                : renderTextField(control, errors, 'department', 'Bereich / Abteilung', { required: true })}
-              {renderTextField(control, errors, 'aiChampion', 'AI Champion')}
+                ? renderSelectField(
+                    control,
+                    errors,
+                    'department',
+                    'Bereich / Abteilung',
+                    departmentOptions
+                  )
+                : renderTextField(control, errors, 'department', 'Bereich / Abteilung', {
+                    required: true
+                  })}
+              <Grid item xs={12} sm={6}>
+                <Controller
+                  name="aiChampionId"
+                  control={control}
+                  render={({ field }) => (
+                    <ChampionSelect
+                      value={field.value}
+                      onChange={field.onChange}
+                      options={champions}
+                      current={initialValues?.assignedChampion}
+                      legacyName={initialValues?.aiChampion}
+                      loading={championsLoading}
+                      unavailable={championsUnavailable}
+                      error={errors.aiChampionId?.message}
+                    />
+                  )}
+                />
+              </Grid>
             </Grid>
           )}
 
@@ -202,9 +281,16 @@ export function UseCaseWizardDialog({
                 'Beschreibung des heutigen Ablaufs / Problems',
                 { required: true, multiline: true, grid: 12 }
               )}
-              {renderTextField(control, errors, 'currentProcess', 'Aktueller Prozess', { multiline: true })}
+              {renderTextField(control, errors, 'currentProcess', 'Aktueller Prozess', {
+                multiline: true
+              })}
               {renderTextField(control, errors, 'painPoints', 'Pain Points', { multiline: true })}
-              {renderTextField(control, errors, 'frequency', 'Häufigkeit oder Aufwand des Problems')}
+              {renderTextField(
+                control,
+                errors,
+                'frequency',
+                'Häufigkeit oder Aufwand des Problems'
+              )}
             </Grid>
           )}
 
@@ -218,7 +304,9 @@ export function UseCaseWizardDialog({
               {renderTextField(control, errors, 'dataSources', 'Eingaben / Datenquellen')}
               {renderTextField(control, errors, 'expectedOutput', 'Ergebnis / Output')}
               {renderSelectField(control, errors, 'reach', 'Reichweite', REACH_LABELS)}
-              {renderTextField(control, errors, 'estimatedUsers', 'Geschätzte Anzahl Nutzer', { type: 'number' })}
+              {renderTextField(control, errors, 'estimatedUsers', 'Geschätzte Anzahl Nutzer', {
+                type: 'number'
+              })}
               {renderTextField(control, errors, 'usageFrequency', 'Nutzungshäufigkeit')}
               {renderTextField(control, errors, 'targetGroup', 'Weitere Angaben zur Zielgruppe')}
             </Grid>
@@ -226,14 +314,46 @@ export function UseCaseWizardDialog({
 
           {activeStep === 3 && (
             <Grid container spacing={2}>
-              {renderMultiSelectField(control, errors, 'benefitTypes', 'Nutzenart', BENEFIT_TYPE_LABELS)}
-              {renderSelectField(control, errors, 'estimatedEffect', 'Geschätzter Effekt', LEVEL_LABELS)}
+              {renderMultiSelectField(
+                control,
+                errors,
+                'benefitTypes',
+                'Nutzenart',
+                BENEFIT_TYPE_LABELS
+              )}
+              {renderSelectField(
+                control,
+                errors,
+                'estimatedEffect',
+                'Geschätzter Effekt',
+                LEVEL_LABELS
+              )}
               {renderTextField(control, errors, 'estimatedTimeSavings', 'Geschätzte Zeitersparnis')}
-              {renderTextField(control, errors, 'benefits', 'Nutzen kurz erläutern', { multiline: true, grid: 12 })}
-              {renderSelectField(control, errors, 'aiSolutionType', 'KI-Lösung', AI_SOLUTION_TYPE_LABELS)}
+              {renderTextField(control, errors, 'benefits', 'Nutzen kurz erläutern', {
+                multiline: true,
+                grid: 12
+              })}
+              {renderSelectField(
+                control,
+                errors,
+                'aiSolutionType',
+                'KI-Lösung',
+                AI_SOLUTION_TYPE_LABELS
+              )}
               {aiSolutionType === AiSolutionType.SONSTIGES &&
-                renderTextField(control, errors, 'aiSolutionOtherText', 'KI-Lösung: sonstige, bitte benennen')}
-              {renderSelectField(control, errors, 'implementationEffort', 'Umsetzungsaufwand', LEVEL_LABELS)}
+                renderTextField(
+                  control,
+                  errors,
+                  'aiSolutionOtherText',
+                  'KI-Lösung: sonstige, bitte benennen'
+                )}
+              {renderSelectField(
+                control,
+                errors,
+                'implementationEffort',
+                'Umsetzungsaufwand',
+                LEVEL_LABELS
+              )}
               {renderTextField(control, errors, 'dependencies', 'Abhängigkeiten / Voraussetzungen')}
             </Grid>
           )}
@@ -248,10 +368,16 @@ export function UseCaseWizardDialog({
                 DATA_CLASSIFICATION_LABELS,
                 12
               )}
-              {renderTextField(control, errors, 'riskAssessment', 'Besondere Risiken oder Anforderungen', {
-                multiline: true,
-                grid: 12
-              })}
+              {renderTextField(
+                control,
+                errors,
+                'riskAssessment',
+                'Besondere Risiken oder Anforderungen',
+                {
+                  multiline: true,
+                  grid: 12
+                }
+              )}
               {renderTextField(control, errors, 'securityNotes', 'Weitere Sicherheitshinweise', {
                 multiline: true,
                 grid: 12
@@ -277,7 +403,12 @@ export function UseCaseWizardDialog({
           Zurück
         </Button>
         {isLastStep ? (
-          <Button type="submit" form="use-case-wizard-form" variant="contained" disabled={submitting}>
+          <Button
+            type="submit"
+            form="use-case-wizard-form"
+            variant="contained"
+            disabled={submitting}
+          >
             Speichern
           </Button>
         ) : (

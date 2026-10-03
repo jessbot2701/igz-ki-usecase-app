@@ -10,6 +10,7 @@ export interface AuthTokenPayload {
   sub: string;
   role: Role;
   name: string;
+  scope?: 'employee';
 }
 
 export interface AuthResult {
@@ -24,7 +25,7 @@ export class AuthService {
 
   async login(email: string, password: string): Promise<AuthResult> {
     const user = await this.users.findByEmail(email);
-    if (!user || !user.active) {
+    if (!user || !user.active || user.passwordHash === 'EMAIL_LINK_ONLY') {
       throw ApiError.unauthorized('Ungültige Anmeldedaten');
     }
     const valid = await bcrypt.compare(password, user.passwordHash);
@@ -34,12 +35,23 @@ export class AuthService {
     const token = this.signToken(user);
     return {
       token,
-      user: { id: user.id, name: user.name, email: user.email, role: user.role, department: user.department }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department
+      }
     };
   }
 
-  signToken(user: User): string {
-    const payload: AuthTokenPayload = { sub: user.id, role: user.role as Role, name: user.name };
+  signToken(user: User, scope?: 'employee'): string {
+    const payload: AuthTokenPayload = {
+      sub: user.id,
+      role: user.role as Role,
+      name: user.name,
+      scope
+    };
     const options: SignOptions = { expiresIn: env.jwtExpiresIn as SignOptions['expiresIn'] };
     return jwt.sign(payload, env.jwtSecret, options);
   }
